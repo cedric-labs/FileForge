@@ -1,0 +1,103 @@
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+
+namespace FileForge.Storage;
+
+/// <summary>
+/// Détermine et extrait un identifiant stable pour un volume local ou un partage réseau UNC.
+/// </summary>
+public static class VolumeIdentityResolver
+{
+    [DllImport("kernel32.dll", EntryPoint = "GetVolumeInformationW", SetLastError = true, CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetVolumeInformationW(
+        string lpRootPathName,
+        StringBuilder lpVolumeNameBuffer,
+        uint nVolumeNameSize,
+        out uint lpVolumeSerialNumber,
+        out uint lpMaximumComponentLength,
+        out uint lpFileSystemFlags,
+        StringBuilder lpFileSystemNameBuffer,
+        uint nFileSystemNameSize);
+
+    /// <summary>
+    /// Retourne un identifiant stable pour un chemin local (numéro de série du volume) ou UNC (serveur\partage).
+    /// </summary>
+    public static string? GetDiskId(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        // Cas UNC : \\serveur\partage\...
+        if (path.StartsWith('\\'))
+        {
+            string? uncRoot = GetUncRoot(path);
+            return uncRoot is not null ? $"UNC:{uncRoot}" : null;
+        }
+
+        // Cas local : D:\...
+        return GetVolumeIdFromPath(path);
+    }
+
+    /// <summary>
+    /// Utilise l'API Win32 GetVolumeInformation pour obtenir le numéro de série d'un volume local.
+    /// </summary>
+    public static string? GetVolumeIdFromPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        string? root = Path.GetPathRoot(path);
+        if (string.IsNullOrEmpty(root))
+        {
+            return null;
+        }
+
+        var volumeName = new StringBuilder(261);
+        var fileSystemName = new StringBuilder(261);
+
+        bool success = GetVolumeInformationW(
+            root,
+            volumeName,
+            (uint)volumeName.Capacity,
+            out uint serialNumber,
+            out _,
+            out _,
+            fileSystemName,
+            (uint)fileSystemName.Capacity);
+
+        if (!success)
+        {
+            return null;
+        }
+
+        return $"VOL:{serialNumber:X8}";
+    }
+
+    /// <summary>
+    /// Extrait la racine d'un chemin UNC (\\serveur\partage) de manière déterministe.
+    /// </summary>
+    public static string? GetUncRoot(string? uncPath)
+    {
+        if (string.IsNullOrWhiteSpace(uncPath))
+        {
+            return null;
+        }
+
+        var trimmed = uncPath.TrimStart('\\');
+        var parts = trimmed.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length >= 2)
+        {
+            return $"\\\\{parts[0]}\\{parts[1]}";
+        }
+
+        return uncPath;
+    }
+}

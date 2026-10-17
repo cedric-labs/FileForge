@@ -1,0 +1,156 @@
+using System;
+using System.IO;
+using FileForge.IO;
+using FluentAssertions;
+using Xunit;
+
+namespace FileForge.Tests;
+
+public class FileCopierTests
+{
+    [Theory]
+    [InlineData(500, 64 * 1024)]
+    [InlineData(10 * 1024 * 1024, 1024 * 1024)]
+    [InlineData(600 * 1024 * 1024, 16 * 1024 * 1024)]
+    public void CalculateOptimalBufferSize_ShouldReturnSensibleSizes(long fileSize, int expectedMinSize)
+    {
+        int bufferSize = FileCopier.CalculateOptimalBufferSize(fileSize);
+
+        bufferSize.Should().BeGreaterOrEqualTo(expectedMinSize);
+    }
+
+    [Theory]
+    [InlineData(500, "500 o")]
+    [InlineData(2048, "2 Ko")]
+    [InlineData(5 * 1024 * 1024, "5 Mo")]
+    public void FormatFileSize_ShouldFormatCorrectly(long bytes, string expected)
+    {
+        string formatted = FileCopier.FormatFileSize(bytes);
+
+        formatted.Should().Be(expected);
+    }
+
+    [Fact]
+    public void CopyFile_ValidSource_ShouldCopyAndVerifyHash()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"copy_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        var srcFile = Path.Combine(tempDir, "source.txt");
+        var dstFile = Path.Combine(tempDir, "destination.txt");
+
+        try
+        {
+            File.WriteAllText(srcFile, "Contenu de test pour la copie sécurisée.");
+
+            bool success = FileCopier.CopyFile(srcFile, dstFile, verifyHash: true);
+
+            success.Should().BeTrue();
+            File.Exists(dstFile).Should().BeTrue();
+            File.ReadAllText(dstFile).Should().Be("Contenu de test pour la copie sécurisée.");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void CompareFileHashes_IdenticalFiles_ShouldReturnTrue()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"hash_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        var file1 = Path.Combine(tempDir, "file1.txt");
+        var file2 = Path.Combine(tempDir, "file2.txt");
+
+        try
+        {
+            File.WriteAllText(file1, "Même contenu");
+            File.WriteAllText(file2, "Même contenu");
+
+            bool matches = FileCopier.CompareFileHashes(file1, file2);
+
+            matches.Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void CopyFile_WithDisplayProgress_ShouldSucceed()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"copy_prog_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        var srcFile = Path.Combine(tempDir, "source_prog.txt");
+        var dstFile = Path.Combine(tempDir, "destination_prog.txt");
+
+        try
+        {
+            File.WriteAllText(srcFile, new string('A', 10000));
+
+            bool success = FileCopier.CopyFile(srcFile, dstFile, bufferSize: 1024, displayProgress: true);
+
+            success.Should().BeTrue();
+            File.Exists(dstFile).Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void CopyFile_WhenSourceNotFound_ShouldReturnFalse()
+    {
+        bool success = FileCopier.CopyFile(@"C:\NonExistent_File_12345.txt", @"C:\NonExistent_Dest_12345.txt");
+        success.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CopyMetadata_ForDirectory_ShouldCopyDatesAndAttributes()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"meta_dir_test_{Guid.NewGuid():N}");
+        var srcDir = Path.Combine(tempDir, "Src");
+        var dstDir = Path.Combine(tempDir, "Dst");
+
+        Directory.CreateDirectory(srcDir);
+        Directory.CreateDirectory(dstDir);
+
+        try
+        {
+            var pastDate = new DateTime(2020, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+            Directory.SetLastWriteTimeUtc(srcDir, pastDate);
+
+            FileCopier.CopyMetadata(srcDir, dstDir, includeAcl: true);
+
+            Directory.GetLastWriteTimeUtc(dstDir).Should().Be(pastDate);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void CopyAcl_WhenSourceNotFound_ShouldThrowFileNotFoundException()
+    {
+        var action = () => FileCopier.CopyAcl(@"C:\NonExistent_Path_Acl", @"C:\NonExistent_Path_Dst");
+        action.Should().Throw<FileNotFoundException>();
+    }
+}
