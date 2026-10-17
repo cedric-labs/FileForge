@@ -11,6 +11,8 @@ public static class PathNormalizer
     /// <summary>
     /// Normalise un chemin pour supporter les chemins longs sous Windows avec le préfixe étendu.
     /// </summary>
+    /// <param name="path">Chemin à normaliser.</param>
+    /// <returns>Chemin normalisé avec préfixe \\?\ ou \\?\UNC\.</returns>
     public static string NormalizeLongPath(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -33,6 +35,8 @@ public static class PathNormalizer
     /// <summary>
     /// Supprime les préfixes de chemin long (\\?\ ou \\?\UNC\) pour un affichage ou un traitement standard.
     /// </summary>
+    /// <param name="path">Chemin normalisé potentiellement préfixé.</param>
+    /// <returns>Chemin sans le préfixe étendu.</returns>
     public static string RemoveLongPathPrefix(string path)
     {
         if (string.IsNullOrEmpty(path))

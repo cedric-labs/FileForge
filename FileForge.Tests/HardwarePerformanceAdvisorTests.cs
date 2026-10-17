@@ -8,7 +8,7 @@ namespace FileForge.Tests;
 public class HardwarePerformanceAdvisorTests
 {
     [Fact]
-    public void CalculateOptimalParallelism_ValidPaths_ShouldReturnAtLeastOne()
+    public void CalculateOptimalParallelism_WhenPathsAreValid_ReturnsAtLeastOne()
     {
         int parallelism = HardwarePerformanceAdvisor.CalculateOptimalParallelism(@"C:\Source", @"D:\Destination");
 
@@ -17,14 +17,14 @@ public class HardwarePerformanceAdvisorTests
     }
 
     [Fact]
-    public void IsSsdDrive_WhenPathIsEmptyOrWhitespace_ShouldReturnFalse()
+    public void IsSsdDrive_WhenPathIsEmptyOrWhitespace_ReturnsFalse()
     {
         HardwarePerformanceAdvisor.IsSsdDrive(string.Empty).Should().BeFalse();
         HardwarePerformanceAdvisor.IsSsdDrive("   ").Should().BeFalse();
     }
 
     [Fact]
-    public void GetAvailableMemoryInGB_ShouldReturnPositiveNumber()
+    public void GetAvailableMemoryInGB_WhenQueried_ReturnsPositiveNumber()
     {
         double memory = HardwarePerformanceAdvisor.GetAvailableMemoryInGB();
 
@@ -34,7 +34,7 @@ public class HardwarePerformanceAdvisorTests
     [Theory]
     [InlineData(@"\\server\share\sub")]
     [InlineData(@"Z:\NonExistentDrive\Data")]
-    public void IsSsdDrive_WhenUncOrNonExistentDrive_ShouldReturnFalse(string path)
+    public void IsSsdDrive_WhenUncOrNonExistentDrive_ReturnsFalse(string path)
     {
         bool isSsd = HardwarePerformanceAdvisor.IsSsdDrive(path);
 
@@ -42,7 +42,7 @@ public class HardwarePerformanceAdvisorTests
     }
 
     [Fact]
-    public void CalculateOptimalParallelism_WhenOneSideIsUnc_ShouldReturnOne()
+    public void CalculateOptimalParallelism_WhenOneSideIsUnc_ReturnsOne()
     {
         int parallelism = HardwarePerformanceAdvisor.CalculateOptimalParallelism(@"\\server\share", @"C:\Local");
 
@@ -50,7 +50,7 @@ public class HardwarePerformanceAdvisorTests
     }
 
     [Fact]
-    public void AdvisorLog_EventSubscription_ShouldWork()
+    public void AdvisorLog_WhenEventSubscribed_ReceivesOrIgnoresEventsCorrectly()
     {
         bool logged = false;
         EventHandler<FileForge.Diagnostics.LogMessageEventArgs> handler = (_, _) => logged = true;

@@ -26,17 +26,27 @@ public static class FileCopier
     /// <summary>
     /// Copie un fichier vers sa destination via un fichier temporaire (.fileforge_tmp) pour assurer la cohérence transactionnelle.
     /// </summary>
+    /// <param name="sourcePath">Chemin du fichier source.</param>
+    /// <param name="destPath">Chemin du fichier de destination.</param>
+    /// <param name="bufferSize">Taille du tampon de copie en octets.</param>
+    /// <param name="displayProgress">Indique s'il faut afficher la progression sur la console en direct.</param>
+    /// <param name="verifyHash">Indique si l'intégrité du fichier doit être vérifiée par empreinte SHA256 après copie.</param>
+    /// <param name="progressCallback">Délégation optionnelle notifiée du nombre d'octets transférés et de la taille totale.</param>
+    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
+    /// <returns>True si la copie et la vérification ont réussi, sinon false.</returns>
     public static bool CopyFile(
         string sourcePath,
         string destPath,
         int bufferSize = 64 * 1024,
         bool displayProgress = false,
         bool verifyHash = false,
-        Action<long, long>? progressCallback = null)
+        Action<long, long>? progressCallback = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destPath);
 
+        cancellationToken.ThrowIfCancellationRequested();
         var tempPath = destPath + TempExtension;
 
         try
@@ -60,6 +70,7 @@ public static class FileCopier
 
                     while ((bytesRead = sourceStream.Read(buffer, 0, buffer.Length)) > 0)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         destStream.Write(buffer, 0, bytesRead);
                         totalBytesRead += bytesRead;
 
@@ -88,6 +99,8 @@ public static class FileCopier
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (File.Exists(destPath))
             {
                 File.Delete(destPath);
@@ -104,6 +117,11 @@ public static class FileCopier
             }
 
             return true;
+        }
+        catch (OperationCanceledException)
+        {
+            CleanupTempFile(tempPath);
+            throw;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -192,6 +210,12 @@ public static class FileCopier
         }
     }
 
+    /// <summary>
+    /// Compare les empreintes de hachage SHA256 de deux fichiers pour s'assurer de leur stricte identité binaire.
+    /// </summary>
+    /// <param name="path1">Chemin du premier fichier.</param>
+    /// <param name="path2">Chemin du second fichier.</param>
+    /// <returns>True si les deux empreintes sont rigoureusement identiques, sinon false.</returns>
     public static bool CompareFileHashes(string path1, string path2)
     {
         using var sha = SHA256.Create();
@@ -202,6 +226,11 @@ public static class FileCopier
         return hash1.SequenceEqual(hash2);
     }
 
+    /// <summary>
+    /// Calcule la taille optimale de tampon de copie en fonction de la taille globale du fichier source.
+    /// </summary>
+    /// <param name="fileSize">Taille du fichier en octets.</param>
+    /// <returns>Taille de tampon recommandée (entre 64 Ko et 16 Mo).</returns>
     public static int CalculateOptimalBufferSize(long fileSize)
     {
         const int smallFileThreshold = 1 * 1024 * 1024;
@@ -233,6 +262,11 @@ public static class FileCopier
         return buffer16M;
     }
 
+    /// <summary>
+    /// Formate un nombre d'octets en chaîne lisible avec unité adéquate (o, Ko, Mo, Go, To, Po).
+    /// </summary>
+    /// <param name="bytes">Nombre d'octets.</param>
+    /// <returns>Chaîne formatée avec unité.</returns>
     public static string FormatFileSize(long bytes)
     {
         string[] suffixes = ["o", "Ko", "Mo", "Go", "To", "Po"];

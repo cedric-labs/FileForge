@@ -25,6 +25,8 @@ public static class VolumeIdentityResolver
     /// <summary>
     /// Retourne un identifiant stable pour un chemin local (numéro de série du volume) ou UNC (serveur\partage).
     /// </summary>
+    /// <param name="path">Chemin local ou UNC à identifier.</param>
+    /// <returns>Identifiant stable sous forme "VOL:XXXXXXXX" ou "UNC:\\serveur\partage", ou null si non résolu.</returns>
     public static string? GetDiskId(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -46,6 +48,8 @@ public static class VolumeIdentityResolver
     /// <summary>
     /// Utilise l'API Win32 GetVolumeInformation pour obtenir le numéro de série d'un volume local.
     /// </summary>
+    /// <param name="path">Chemin local à analyser.</param>
+    /// <returns>Identifiant "VOL:XXXXXXXX" ou null en cas d'erreur de lecture.</returns>
     public static string? GetVolumeIdFromPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -83,6 +87,8 @@ public static class VolumeIdentityResolver
     /// <summary>
     /// Extrait la racine d'un chemin UNC (\\serveur\partage) de manière déterministe.
     /// </summary>
+    /// <param name="uncPath">Chemin réseau UNC.</param>
+    /// <returns>Racine \\serveur\partage ou le chemin original si invalide.</returns>
     public static string? GetUncRoot(string? uncPath)
     {
         if (string.IsNullOrWhiteSpace(uncPath))
@@ -105,6 +111,9 @@ public static class VolumeIdentityResolver
     /// Compare deux identifiants de disque ou de partage réseau en tolérant les variations d'écriture
     /// (ex: "UNC:\serveur\partage" et "UNC:\\serveur\partage").
     /// </summary>
+    /// <param name="actual">Identifiant résolu réel.</param>
+    /// <param name="expected">Identifiant attendu dans la configuration.</param>
+    /// <returns>True si les deux identifiants correspondent, sinon false.</returns>
     public static bool AreMatchingDiskIds(string? actual, string? expected)
     {
         if (string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase))
@@ -124,6 +133,8 @@ public static class VolumeIdentityResolver
     /// Normalise la forme canonique d'un identifiant de disque.
     /// Pour les partages réseau UNC, harmonise le préfixe vers la syntaxe "UNC:\\serveur\partage".
     /// </summary>
+    /// <param name="diskId">Identifiant de disque à normaliser.</param>
+    /// <returns>Identifiant normalisé.</returns>
     public static string NormalizeDiskId(string diskId)
     {
         if (string.IsNullOrWhiteSpace(diskId))

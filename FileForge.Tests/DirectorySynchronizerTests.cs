@@ -10,7 +10,7 @@ namespace FileForge.Tests;
 public class DirectorySynchronizerTests
 {
     [Fact]
-    public void ParallelEnumerateFiles_ShouldDiscoverAllFilesAndDirectories()
+    public void ParallelEnumerateFiles_WhenCalled_DiscoversAllFilesAndDirectories()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"enum_test_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
@@ -38,7 +38,7 @@ public class DirectorySynchronizerTests
     }
 
     [Fact]
-    public void CloneDirectory_ShouldMirrorSourceToDestination()
+    public void CloneDirectory_WhenExecuted_MirrorsSourceToDestination()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), $"clone_test_{Guid.NewGuid():N}");
         var srcDir = Path.Combine(tempRoot, "Source");
@@ -96,7 +96,7 @@ public class DirectorySynchronizerTests
     }
 
     [Fact]
-    public void IncrementalBackup_ShouldCreateDatedBackupFolder()
+    public void IncrementalBackup_WhenExecuted_CreatesDatedBackupFolderAndCatalog()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), $"inc_test_{Guid.NewGuid():N}");
         var srcDir = Path.Combine(tempRoot, "Source");
@@ -142,7 +142,7 @@ public class DirectorySynchronizerTests
     }
 
     [Fact]
-    public void ForceDeleteDirectory_WhenDirectoryHasReadOnlySubdirectoryAndFiles_ShouldDeleteSuccessfully()
+    public void ForceDeleteDirectory_WhenDirectoryHasReadOnlySubdirectoryAndFiles_DeletesSuccessfully()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), $"force_del_test_{Guid.NewGuid():N}");
         var subDir = Path.Combine(tempRoot, "SubDir_ReadOnly");
@@ -161,7 +161,7 @@ public class DirectorySynchronizerTests
     }
 
     [Fact]
-    public void ForceDeleteDirectory_WhenDirectoryDoesNotExist_ShouldReturnSilently()
+    public void ForceDeleteDirectory_WhenDirectoryDoesNotExist_ReturnsSilently()
     {
         var nonExistentPath = Path.Combine(Path.GetTempPath(), $"non_existent_{Guid.NewGuid():N}");
 
@@ -171,7 +171,7 @@ public class DirectorySynchronizerTests
     }
 
     [Fact]
-    public void ForceDeleteDirectory_WhenPathIsNullOrWhiteSpace_ShouldThrowArgumentException()
+    public void ForceDeleteDirectory_WhenPathIsNullOrWhiteSpace_ThrowsArgumentException()
     {
         var action = () => DirectorySynchronizer.ForceDeleteDirectory("   ");
 

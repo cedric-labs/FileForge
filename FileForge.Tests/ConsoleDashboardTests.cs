@@ -13,14 +13,14 @@ public class ConsoleDashboardTests
     [InlineData(100, 10, "[██████████]")]
     [InlineData(-10, 10, "[░░░░░░░░░░]")]
     [InlineData(150, 10, "[██████████]")]
-    public void BuildProgressBar_ReturnsExpectedVisualRepresentation(double percent, int barWidth, string expected)
+    public void BuildProgressBar_WhenGivenPercentAndWidth_ReturnsExpectedVisualRepresentation(double percent, int barWidth, string expected)
     {
         string result = ConsoleDashboard.BuildProgressBar(percent, barWidth);
         Assert.Equal(expected, result);
     }
 
     [Fact]
-    public void BuildProgressBar_ClampsWidthCorrectly()
+    public void BuildProgressBar_WhenWidthIsOutOfBounds_ClampsCorrectly()
     {
         string minResult = ConsoleDashboard.BuildProgressBar(50, 2);
         Assert.Equal("[██░░░]", minResult);
@@ -36,7 +36,7 @@ public class ConsoleDashboardTests
     [InlineData(1536, "1.5 Ko")]
     [InlineData(1048576, "1 Mo")]
     [InlineData(1073741824, "1 Go")]
-    public void FormatBytes_FormatsCorrectly(long bytes, string expected)
+    public void FormatBytes_WhenGivenByteCount_ReturnsHumanReadableSize(long bytes, string expected)
     {
         string result = ConsoleDashboard.FormatBytes(bytes);
         Assert.Equal(expected, result);
@@ -46,7 +46,7 @@ public class ConsoleDashboardTests
     [InlineData(0, 5, 23, "05:23")]
     [InlineData(1, 2, 3, "01:02:03")]
     [InlineData(25, 0, 0, "25:00:00")]
-    public void FormatTimeSpan_FormatsHoursAndMinutesCorrectly(int hours, int minutes, int seconds, string expected)
+    public void FormatTimeSpan_WhenGivenTimeSpan_FormatsHoursAndMinutesCorrectly(int hours, int minutes, int seconds, string expected)
     {
         var ts = new TimeSpan(hours, minutes, seconds);
         string result = ConsoleDashboard.FormatTimeSpan(ts);
@@ -54,20 +54,20 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void ShortenPath_NullOrEmpty_ReturnsEmpty()
+    public void ShortenPath_WhenPathIsNullOrEmpty_ReturnsEmptyString()
     {
         Assert.Equal(string.Empty, ConsoleDashboard.ShortenPath(string.Empty, 20));
     }
 
     [Fact]
-    public void ShortenPath_ShortEnough_ReturnsOriginal()
+    public void ShortenPath_WhenPathIsWithinMaxLength_ReturnsOriginalPath()
     {
         string path = @"C:\Folder\file.txt";
         Assert.Equal(path, ConsoleDashboard.ShortenPath(path, 50));
     }
 
     [Fact]
-    public void ShortenPath_TooLong_ShortensWithEllipsis()
+    public void ShortenPath_WhenPathExceedsMaxLength_ShortensWithEllipsis()
     {
         string path = @"C:\Users\user\AppData\Local\Temp\VeryLongDirectoryName\SubFolder\TargetFile.txt";
         string result = ConsoleDashboard.ShortenPath(path, 30);
@@ -77,7 +77,7 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void PadOrTruncate_BehavesAsExpected()
+    public void PadOrTruncate_WhenCalledWithVariousLengths_PadsOrTruncatesCorrectly()
     {
         Assert.Equal("     ", ConsoleDashboard.PadOrTruncate(string.Empty, 5));
         Assert.Equal("abc  ", ConsoleDashboard.PadOrTruncate("abc", 5));
@@ -85,7 +85,7 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void BuildDashboardString_ContainsHeadersPathsAndCounts()
+    public void BuildDashboardString_WhenRendered_ContainsHeadersPathsAndCounts()
     {
         using var dashboard = new ConsoleDashboard(
             taskName: "Sauvegarde Test",
@@ -106,7 +106,7 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void UpdateCurrentFile_And_CompleteFile_UpdateCountersAndRenderSafely()
+    public void UpdateCurrentFile_WhenFilesProgress_UpdatesCountersAndRendersCorrectly()
     {
         using var dashboard = new ConsoleDashboard(
             taskName: "Test Run",
@@ -130,7 +130,7 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void CenterText_CentersCorrectly()
+    public void CenterText_WhenGivenTextAndWidth_CentersOrTruncatesCorrectly()
     {
         Assert.Equal("   test   ", ConsoleDashboard.CenterText("test", 10));
         Assert.Equal("test", ConsoleDashboard.CenterText("test", 4));
@@ -138,7 +138,7 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void BuildDashboardString_CentersWithLeftMargin()
+    public void BuildDashboardString_WhenBoxWidthIsLessThanTotalWidth_CentersWithLeftMargin()
     {
         using var dashboard = new ConsoleDashboard(
             taskName: "Center Test",
@@ -152,7 +152,7 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void FailFile_UpdatesCountersAndShowsIgnoredFiles()
+    public void FailFile_WhenFileFails_UpdatesCountersAndShowsFailedCount()
     {
         using var dashboard = new ConsoleDashboard(
             taskName: "Fail Test",
@@ -170,7 +170,7 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void DrawNortonBox_ShouldRenderDirectlyWithoutThrowing()
+    public void DrawNortonBox_WhenInvoked_RendersDirectlyWithoutThrowing()
     {
         using var dashboard = new ConsoleDashboard(
             taskName: "Render Test",
@@ -193,7 +193,7 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void DrawNortonBox_WithZeroTotals_ShouldRenderGracefully()
+    public void DrawNortonBox_WhenTotalsAreZero_RendersGracefully()
     {
         using var dashboard = new ConsoleDashboard(
             taskName: "Zero Test",
@@ -207,7 +207,7 @@ public class ConsoleDashboardTests
     }
 
     [Fact]
-    public void DashboardPhases_Lifecycle_ShouldTransitionAndRenderCorrectly()
+    public void SetTransferPlan_WhenLifecycleProgresses_TransitionsPhasesAndRendersCorrectly()
     {
         using var dashboard = new ConsoleDashboard(
             taskName: "Lifecycle Test",

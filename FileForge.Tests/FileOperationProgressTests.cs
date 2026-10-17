@@ -7,7 +7,7 @@ namespace FileForge.Tests;
 public class FileOperationProgressTests
 {
     [Fact]
-    public void FileOperationProgress_PercentComplete_ShouldCalculateAccurately()
+    public void PercentComplete_WhenBytesProcessed_CalculatesAccurately()
     {
         var progress = new FileOperationProgress(@"C:\src.txt", @"D:\dst.txt", totalBytes: 1000, processedBytes: 250, FileOperationType.Copy);
 
@@ -17,7 +17,7 @@ public class FileOperationProgressTests
     }
 
     [Fact]
-    public void FileOperationProgress_WhenTotalBytesZero_PercentCompleteShouldBeZero()
+    public void PercentComplete_WhenTotalBytesIsZero_ReturnsZero()
     {
         var progress = new FileOperationProgress(@"C:\src.txt", @"D:\dst.txt", totalBytes: 0, processedBytes: 0, FileOperationType.Inactive, isCompleted: true);
 

@@ -10,7 +10,7 @@ namespace FileForge.Tests;
 public class SyncCatalogRepositoryTests
 {
     [Fact]
-    public void LoadCatalog_WhenFileDoesNotExist_ShouldReturnEmptyDictionary()
+    public void LoadCatalog_WhenFileDoesNotExist_ReturnsEmptyDictionary()
     {
         var result = SyncCatalogRepository.LoadCatalog(@"C:\non\existent\catalog.dat");
 
@@ -19,7 +19,7 @@ public class SyncCatalogRepositoryTests
     }
 
     [Fact]
-    public void SaveAndLoadCatalog_ShouldPersistAndReloadCorrectly()
+    public void SaveCatalog_WhenLoadedAfterSaving_PersistsAndReloadsEntriesCorrectly()
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"catalog_test_{Guid.NewGuid():N}.dat");
 
@@ -48,7 +48,7 @@ public class SyncCatalogRepositoryTests
     }
 
     [Fact]
-    public void MigrateLegacyBackupNames_ShouldRenameMatchingFolders()
+    public void MigrateLegacyBackupNames_WhenLegacyFoldersExist_RenamesMatchingFolders()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"migrate_test_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
@@ -82,7 +82,7 @@ public class SyncCatalogRepositoryTests
     }
 
     [Fact]
-    public void BootstrapInitialCatalog_ShouldCreateIndexFile()
+    public void BootstrapInitialCatalog_WhenValidBackupsExist_CreatesIndexFile()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), $"bootstrap_test_{Guid.NewGuid():N}");
         var srcDir = Path.Combine(tempRoot, "Source");
@@ -112,7 +112,7 @@ public class SyncCatalogRepositoryTests
     }
 
     [Fact]
-    public void BootstrapInitialCatalog_WhenCatalogAlreadyExists_ShouldReturnEarly()
+    public void BootstrapInitialCatalog_WhenCatalogAlreadyExists_ReturnsEarlyWithoutModifying()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), $"bootstrap_exist_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempRoot);
@@ -136,7 +136,7 @@ public class SyncCatalogRepositoryTests
     }
 
     [Fact]
-    public void BootstrapInitialCatalog_WhenNoLegacyDirs_ShouldReturnEarly()
+    public void BootstrapInitialCatalog_WhenNoLegacyDirectoriesExist_ReturnsEarly()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), $"bootstrap_nodirs_{Guid.NewGuid():N}");
         var srcDir = Path.Combine(tempRoot, "Source");
@@ -160,7 +160,7 @@ public class SyncCatalogRepositoryTests
     }
 
     [Fact]
-    public void BootstrapInitialCatalog_WhenSourceFileDoesNotExist_ShouldIndexBackupFile()
+    public void BootstrapInitialCatalog_WhenSourceFileDoesNotExist_IndexesBackupFile()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), $"bootstrap_nosrc_{Guid.NewGuid():N}");
         var srcDir = Path.Combine(tempRoot, "Source");
@@ -188,14 +188,14 @@ public class SyncCatalogRepositoryTests
     }
 
     [Fact]
-    public void MigrateLegacyBackupNames_WhenDirDoesNotExist_ShouldReturnSilently()
+    public void MigrateLegacyBackupNames_WhenDirectoryDoesNotExist_ReturnsSilently()
     {
         var action = () => SyncCatalogRepository.MigrateLegacyBackupNames(@"C:\NonExistent_Migrate_Dir_12345");
         action.Should().NotThrow();
     }
 
     [Fact]
-    public void LoadCatalog_WhenCorruptData_ShouldReturnEmptyDictionary()
+    public void LoadCatalog_WhenDataIsCorrupt_ReturnsEmptyDictionary()
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"corrupt_{Guid.NewGuid():N}.dat");
         try

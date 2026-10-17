@@ -11,7 +11,7 @@ public class PathNormalizerTests
     [InlineData(@"\\?\C:\Temp", @"C:\Temp")]
     [InlineData(@"\\?\UNC\server\share", @"\\server\share")]
     [InlineData(@"D:\Data\File.txt", @"D:\Data\File.txt")]
-    public void RemoveLongPathPrefix_ShouldRemovePrefixCorrectly(string input, string expected)
+    public void RemoveLongPathPrefix_WhenPrefixedPathProvided_RemovesPrefixCorrectly(string input, string expected)
     {
         var result = PathNormalizer.RemoveLongPathPrefix(input);
 
@@ -19,7 +19,7 @@ public class PathNormalizerTests
     }
 
     [Fact]
-    public void NormalizeLongPath_WhenPathIsNull_ShouldThrowArgumentException()
+    public void NormalizeLongPath_WhenPathIsNullOrEmpty_ThrowsArgumentException()
     {
         var action = () => PathNormalizer.NormalizeLongPath(string.Empty);
 

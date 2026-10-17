@@ -9,7 +9,7 @@ namespace FileForge.Tests;
 public class VolumeIdentityResolverTests
 {
     [Fact]
-    public void GetDiskId_WhenPathIsEmptyOrWhitespace_ShouldReturnNull()
+    public void GetDiskId_WhenPathIsEmptyOrWhitespace_ReturnsNull()
     {
         VolumeIdentityResolver.GetDiskId(null).Should().BeNull();
         VolumeIdentityResolver.GetDiskId(string.Empty).Should().BeNull();
@@ -17,7 +17,7 @@ public class VolumeIdentityResolverTests
     }
 
     [Fact]
-    public void GetUncRoot_WhenUncPathValid_ShouldExtractServerAndShare()
+    public void GetUncRoot_WhenUncPathIsValid_ExtractsServerAndShare()
     {
         string? root = VolumeIdentityResolver.GetUncRoot(@"\\nas01\backup\folder\file.txt");
 
@@ -25,20 +25,20 @@ public class VolumeIdentityResolverTests
     }
 
     [Fact]
-    public void GetUncRoot_WhenEmptyOrWhitespace_ShouldReturnNull()
+    public void GetUncRoot_WhenPathIsEmptyOrWhitespace_ReturnsNull()
     {
         VolumeIdentityResolver.GetUncRoot(null).Should().BeNull();
         VolumeIdentityResolver.GetUncRoot(string.Empty).Should().BeNull();
     }
 
     [Fact]
-    public void GetUncRoot_WhenSingleServerSegment_ShouldReturnOriginal()
+    public void GetUncRoot_WhenPathIsSingleServerSegment_ReturnsOriginal()
     {
         VolumeIdentityResolver.GetUncRoot(@"\\server").Should().Be(@"\\server");
     }
 
     [Fact]
-    public void GetDiskId_WhenLocalDrive_ShouldReturnVolumeIdentifier()
+    public void GetDiskId_WhenPathIsLocalDrive_ReturnsVolumeIdentifier()
     {
         var rootDir = Path.GetPathRoot(Environment.CurrentDirectory) ?? @"C:\";
         var diskId = VolumeIdentityResolver.GetDiskId(rootDir);
@@ -48,7 +48,7 @@ public class VolumeIdentityResolverTests
     }
 
     [Fact]
-    public void GetDiskId_WhenUncPath_ShouldReturnUncIdentifier()
+    public void GetDiskId_WhenPathIsUnc_ReturnsUncIdentifier()
     {
         var diskId = VolumeIdentityResolver.GetDiskId(@"\\nas\share\folder");
 
@@ -56,14 +56,14 @@ public class VolumeIdentityResolverTests
     }
 
     [Fact]
-    public void GetVolumeIdFromPath_WhenPathIsRelativeOrEmpty_ShouldReturnNull()
+    public void GetVolumeIdFromPath_WhenPathIsRelativeOrEmpty_ReturnsNull()
     {
         VolumeIdentityResolver.GetVolumeIdFromPath(string.Empty).Should().BeNull();
         VolumeIdentityResolver.GetVolumeIdFromPath("relative/subfolder").Should().BeNull();
     }
 
     [Fact]
-    public void GetVolumeIdFromPath_WhenInvalidDrive_ShouldReturnNull()
+    public void GetVolumeIdFromPath_WhenDriveIsInvalid_ReturnsNull()
     {
         VolumeIdentityResolver.GetVolumeIdFromPath(@"Z:\NonExistentDrive_12345\").Should().BeNull();
     }
@@ -78,7 +78,7 @@ public class VolumeIdentityResolverTests
     [InlineData(null, null, true)]
     [InlineData(null, @"UNC:\server\share", false)]
     [InlineData(@"UNC:\server\share", null, false)]
-    public void AreMatchingDiskIds_ShouldCorrectlyMatchVariants(string? actual, string? expected, bool expectedResult)
+    public void AreMatchingDiskIds_WhenComparingVariants_ReturnsExpectedResult(string? actual, string? expected, bool expectedResult)
     {
         bool result = VolumeIdentityResolver.AreMatchingDiskIds(actual, expected);
         result.Should().Be(expectedResult);
@@ -91,7 +91,7 @@ public class VolumeIdentityResolverTests
     [InlineData(@"VOL:ABCDEF12", @"VOL:ABCDEF12")]
     [InlineData("", "")]
     [InlineData("   ", "")]
-    public void NormalizeDiskId_ShouldHarmonizePrefix(string input, string expected)
+    public void NormalizeDiskId_WhenPrefixProvided_HarmonizesPrefix(string input, string expected)
     {
         string normalized = VolumeIdentityResolver.NormalizeDiskId(input);
         normalized.Should().Be(expected);

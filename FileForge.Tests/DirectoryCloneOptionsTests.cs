@@ -7,7 +7,7 @@ namespace FileForge.Tests;
 public class DirectoryCloneOptionsTests
 {
     [Fact]
-    public void IsExcluded_WhenPathIsEmptyOrNull_ShouldReturnFalse()
+    public void IsExcluded_WhenPathIsEmptyOrNull_ReturnsFalse()
     {
         var options = new DirectoryCloneOptions();
 
@@ -16,7 +16,7 @@ public class DirectoryCloneOptionsTests
     }
 
     [Fact]
-    public void IsExcluded_WhenPathMatchesExactly_ShouldReturnTrue()
+    public void IsExcluded_WhenPathMatchesExactly_ReturnsTrue()
     {
         var options = new DirectoryCloneOptions
         {
@@ -28,7 +28,7 @@ public class DirectoryCloneOptionsTests
     }
 
     [Fact]
-    public void IsExcluded_WhenPathIsSubfolderOfExcluded_ShouldReturnTrue()
+    public void IsExcluded_WhenPathIsSubfolderOfExcluded_ReturnsTrue()
     {
         var options = new DirectoryCloneOptions
         {
@@ -39,7 +39,7 @@ public class DirectoryCloneOptionsTests
     }
 
     [Fact]
-    public void IsExcluded_WhenPathIsNotExcluded_ShouldReturnFalse()
+    public void IsExcluded_WhenPathIsNotExcluded_ReturnsFalse()
     {
         var options = new DirectoryCloneOptions
         {

@@ -13,7 +13,7 @@ public class ArchitectureRulesTests
     private static readonly Assembly ProductionAssembly = typeof(FileForge.Paths.PathNormalizer).Assembly;
 
     [Fact]
-    public void Architecture_ShouldNotContainClassesWithGenericCatchAllNames()
+    public void ClassNames_WhenScanned_DoNotContainCatchAllSuffixes()
     {
         // Règle 3 : Interdiction de *Helper*, *Utils*, *Manager*, *Common*
         var types = Types.InAssembly(ProductionAssembly).GetTypes();
@@ -31,7 +31,7 @@ public class ArchitectureRulesTests
     }
 
     [Fact]
-    public void Architecture_ShouldNotContainNamespacesWithGenericCatchAllNames()
+    public void Namespaces_WhenScanned_DoNotContainCatchAllSuffixes()
     {
         // Règle 3 : Interdiction de namespaces génériques
         var types = Types.InAssembly(ProductionAssembly).GetTypes();
@@ -50,7 +50,7 @@ public class ArchitectureRulesTests
     }
 
     [Fact]
-    public void SourceCode_ShouldNotContainWarningSuppressionDirectives()
+    public void SourceCode_WhenScanned_ContainsNoWarningSuppressionDirectives()
     {
         // Règle 1 : Zéro masquage d'avertissement (#pragma warning disable, // NOSONAR, [SuppressMessage])
         var sourceFiles = GetProductionSourceFiles();
@@ -71,7 +71,7 @@ public class ArchitectureRulesTests
     }
 
     [Fact]
-    public void SourceCode_ShouldNotContainSilentCatchBlocks()
+    public void SourceCode_WhenScanned_ContainsNoSilentCatchBlocks()
     {
         // Règle 2 : Zéro bloc catch muet
         var sourceFiles = GetProductionSourceFiles();
@@ -85,6 +85,30 @@ public class ArchitectureRulesTests
                 if (trimmed.StartsWith("catch", StringComparison.Ordinal) && trimmed.EndsWith("{}", StringComparison.Ordinal))
                 {
                     Assert.Fail($"Bloc catch muet détecté dans {Path.GetFileName(file)} à la ligne {i + 1} : '{trimmed}'");
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void SourceCode_WhenScanned_ContainsNoAiBuzzwords()
+    {
+        // Règle 6 : Zéro marqueur lexical d'IA
+        string[] aiBuzzwords = ["Robust", "Resilient", "Seamless", "Smart", "Comprehensive", "Ultimate"];
+        var types = Types.InAssembly(ProductionAssembly).GetTypes();
+
+        foreach (var type in types)
+        {
+            foreach (var word in aiBuzzwords)
+            {
+                type.Name.Should().NotContain(word, because: $"le type {type.Name} ne doit pas contenir de marqueur lexical d'IA '{word}'");
+            }
+
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+            {
+                foreach (var word in aiBuzzwords)
+                {
+                    method.Name.Should().NotContain(word, because: $"la méthode {type.Name}.{method.Name} ne doit pas contenir de marqueur lexical d'IA '{word}'");
                 }
             }
         }

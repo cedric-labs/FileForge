@@ -26,6 +26,11 @@ public static partial class SyncCatalogRepository
     [GeneratedRegex(@"^Backup_\d{8}_\d{4}(?:_\d+)?$", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture)]
     private static partial Regex BackupFolderRegex();
 
+    /// <summary>
+    /// Charge un catalogue d'index binaire à partir du chemin spécifié.
+    /// </summary>
+    /// <param name="catalogPath">Chemin du fichier catalogue binaire (.dat).</param>
+    /// <returns>Dictionnaire associant le chemin relatif à l'empreinte horodatée du fichier.</returns>
     public static Dictionary<string, string> LoadCatalog(string catalogPath)
     {
         var catalog = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -54,6 +59,11 @@ public static partial class SyncCatalogRepository
         return catalog;
     }
 
+    /// <summary>
+    /// Enregistre le catalogue d'index dans un fichier binaire compact.
+    /// </summary>
+    /// <param name="catalog">Dictionnaire des éléments et empreintes à sauvegarder.</param>
+    /// <param name="catalogPath">Chemin de destination du fichier catalogue (.dat).</param>
     public static void SaveCatalog(Dictionary<string, string> catalog, string catalogPath)
     {
         ArgumentNullException.ThrowIfNull(catalog);
@@ -75,6 +85,10 @@ public static partial class SyncCatalogRepository
         }
     }
 
+    /// <summary>
+    /// Renomme les dossiers d'incréments historiques ("sI1", "sI2"...) au format standard "Backup_YYYYMMDD_HHmm".
+    /// </summary>
+    /// <param name="destBaseDir">Répertoire racine contenant les dossiers de sauvegarde.</param>
     public static void MigrateLegacyBackupNames(string destBaseDir)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destBaseDir);
@@ -120,6 +134,11 @@ public static partial class SyncCatalogRepository
         RaiseLog("[MIGRATION] Renommage terminé.");
     }
 
+    /// <summary>
+    /// Reconstitue un fichier catalogue d'index initial à partir des dossiers d'incréments existants sur le disque cible.
+    /// </summary>
+    /// <param name="sourceRoot">Répertoire racine source.</param>
+    /// <param name="destBaseDir">Répertoire racine cible contenant les incréments existants.</param>
     public static void BootstrapInitialCatalog(string sourceRoot, string destBaseDir)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceRoot);

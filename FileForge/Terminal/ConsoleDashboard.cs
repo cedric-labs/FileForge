@@ -39,13 +39,30 @@ public sealed class ConsoleDashboard : IDisposable
     private int _lastWindowWidth;
     private int _lastWindowHeight;
 
+    /// <summary>
+    /// Phase active dans laquelle se trouve le tableau de bord.
+    /// </summary>
     public DashboardPhase Phase => _phase;
 
+    /// <summary>
+    /// Initialise un nouveau tableau de bord en phase d'analyse/inventaire.
+    /// </summary>
+    /// <param name="taskName">Nom de la tâche affiché dans l'en-tête.</param>
+    /// <param name="sourceRoot">Répertoire source.</param>
+    /// <param name="destRoot">Répertoire cible.</param>
     public ConsoleDashboard(string taskName, string sourceRoot, string destRoot)
         : this(taskName, sourceRoot, destRoot, 0, 0, DashboardPhase.Scanning)
     {
     }
 
+    /// <summary>
+    /// Initialise un nouveau tableau de bord en phase de transfert direct.
+    /// </summary>
+    /// <param name="taskName">Nom de la tâche affiché dans l'en-tête.</param>
+    /// <param name="sourceRoot">Répertoire source.</param>
+    /// <param name="destRoot">Répertoire cible.</param>
+    /// <param name="totalFiles">Nombre total de fichiers à copier.</param>
+    /// <param name="totalBytes">Volume total en octets à transférer.</param>
     public ConsoleDashboard(
         string taskName,
         string sourceRoot,
@@ -87,6 +104,11 @@ public sealed class ConsoleDashboard : IDisposable
         }
     }
 
+    /// <summary>
+    /// Met à jour l'affichage lors de la phase d'inventaire.
+    /// </summary>
+    /// <param name="currentDirectory">Dossier actuellement exploré.</param>
+    /// <param name="itemsFound">Nombre total d'éléments découverts.</param>
     public void UpdateScanning(string currentDirectory, int itemsFound)
     {
         _phase = DashboardPhase.Scanning;
@@ -97,6 +119,11 @@ public sealed class ConsoleDashboard : IDisposable
         RenderIfThrottled();
     }
 
+    /// <summary>
+    /// Initialise le plan de transfert et bascule le tableau de bord en phase de copie active.
+    /// </summary>
+    /// <param name="totalFiles">Nombre total de fichiers à copier.</param>
+    /// <param name="totalBytes">Volume total d'octets à transférer.</param>
     public void SetTransferPlan(int totalFiles, long totalBytes)
     {
         _phase = DashboardPhase.Copying;
@@ -106,6 +133,10 @@ public sealed class ConsoleDashboard : IDisposable
         RenderIfThrottled(force: true);
     }
 
+    /// <summary>
+    /// Bascule le tableau de bord en phase "à jour" si aucun fichier ne nécessite de transfert.
+    /// </summary>
+    /// <param name="message">Message d'état informatif.</param>
     public void SetUpToDate(string message = "Disque à jour (aucun changement détecté)")
     {
         _phase = DashboardPhase.UpToDate;
@@ -114,6 +145,10 @@ public sealed class ConsoleDashboard : IDisposable
         RenderIfThrottled(force: true);
     }
 
+    /// <summary>
+    /// Bascule le tableau de bord en phase de complétion finale.
+    /// </summary>
+    /// <param name="message">Message de synthèse final.</param>
     public void Complete(string message = "Sauvegarde validée avec succès")
     {
         _phase = DashboardPhase.Completed;
@@ -122,6 +157,12 @@ public sealed class ConsoleDashboard : IDisposable
         RenderIfThrottled(force: true);
     }
 
+    /// <summary>
+    /// Met à jour la progression du fichier individuel en cours de copie.
+    /// </summary>
+    /// <param name="fileName">Nom ou chemin relatif du fichier.</param>
+    /// <param name="bytesCopied">Octets déjà transférés pour ce fichier.</param>
+    /// <param name="fileTotalBytes">Taille totale de ce fichier en octets.</param>
     public void UpdateCurrentFile(string fileName, long bytesCopied, long fileTotalBytes)
     {
         _currentFileName = fileName;
@@ -132,6 +173,10 @@ public sealed class ConsoleDashboard : IDisposable
         RenderIfThrottled();
     }
 
+    /// <summary>
+    /// Marque le fichier courant comme copié avec succès et incrémente les compteurs.
+    /// </summary>
+    /// <param name="fileSize">Taille du fichier terminé.</param>
     public void CompleteFile(long fileSize)
     {
         System.Threading.Interlocked.Increment(ref _completedFiles);
@@ -141,6 +186,10 @@ public sealed class ConsoleDashboard : IDisposable
         RenderIfThrottled(force: true);
     }
 
+    /// <summary>
+    /// Marque le fichier courant comme ayant échoué et incrémente les compteurs d'échec.
+    /// </summary>
+    /// <param name="fileSize">Taille du fichier en échec.</param>
     public void FailFile(long fileSize)
     {
         System.Threading.Interlocked.Increment(ref _failedFiles);
@@ -164,6 +213,9 @@ public sealed class ConsoleDashboard : IDisposable
         Render();
     }
 
+    /// <summary>
+    /// Force le rendu graphique immédiat du tableau de bord sur la console si la sortie est interactive.
+    /// </summary>
     public void Render()
     {
         if (!_isInteractive)
@@ -499,8 +551,19 @@ public sealed class ConsoleDashboard : IDisposable
         }
     }
 
+    /// <summary>
+    /// Génère une représentation textuelle brute du tableau de bord pour une largeur donnée.
+    /// </summary>
+    /// <param name="width">Largeur totale de l'affichage.</param>
+    /// <returns>Chaîne formatée représentant le tableau de bord rétro.</returns>
     public string BuildDashboardString(int width) => BuildDashboardString(width, width);
 
+    /// <summary>
+    /// Génère une représentation textuelle brute du tableau de bord avec centrage selon la largeur de la boîte et la largeur totale.
+    /// </summary>
+    /// <param name="totalWidth">Largeur totale du conteneur.</param>
+    /// <param name="boxWidth">Largeur intérieure de la boîte Norton.</param>
+    /// <returns>Chaîne formatée représentant le tableau de bord rétro.</returns>
     public string BuildDashboardString(int totalWidth, int boxWidth)
     {
         int effectiveBoxWidth = Math.Clamp(boxWidth, 50, Math.Max(50, totalWidth));
@@ -653,6 +716,12 @@ public sealed class ConsoleDashboard : IDisposable
         sb.AppendLine(CultureInfo.InvariantCulture, $"{indent}║ {PadOrTruncate(statsLine, contentWidth)} ║");
     }
 
+    /// <summary>
+    /// Centre un texte au milieu d'une zone de largeur fixe en ajoutant des espaces compensatoires.
+    /// </summary>
+    /// <param name="text">Texte à centrer.</param>
+    /// <param name="width">Largeur totale cible.</param>
+    /// <returns>Texte centré entouré d'espaces.</returns>
     public static string CenterText(string text, int width)
     {
         if (string.IsNullOrEmpty(text))
@@ -670,6 +739,12 @@ public sealed class ConsoleDashboard : IDisposable
         return new string(' ', leftPadding) + text + new string(' ', rightPadding);
     }
 
+    /// <summary>
+    /// Construit une barre de progression rétro utilisant des caractères blocs pleins et ombrés.
+    /// </summary>
+    /// <param name="percent">Pourcentage entre 0 et 100.</param>
+    /// <param name="barInnerWidth">Nombre de caractères intérieurs pour la barre.</param>
+    /// <returns>Représentation textuelle de la barre de progression entourée de crochets.</returns>
     public static string BuildProgressBar(double percent, int barInnerWidth)
     {
         int effectiveWidth = Math.Clamp(barInnerWidth, 5, 80);
@@ -680,6 +755,11 @@ public sealed class ConsoleDashboard : IDisposable
         return $"[{new string('█', filled)}{new string('░', empty)}]";
     }
 
+    /// <summary>
+    /// Formate un volume d'octets avec l'unité correspondante (o, Ko, Mo, Go, To, Po).
+    /// </summary>
+    /// <param name="bytes">Nombre d'octets.</param>
+    /// <returns>Chaîne formatée avec unité.</returns>
     public static string FormatBytes(long bytes)
     {
         string[] suffixes = ["o", "Ko", "Mo", "Go", "To", "Po"];
@@ -695,6 +775,11 @@ public sealed class ConsoleDashboard : IDisposable
         return string.Format(CultureInfo.InvariantCulture, "{0:0.##} {1}", dblBytes, suffixes[i]);
     }
 
+    /// <summary>
+    /// Formate une durée en format HH:MM:SS ou MM:SS.
+    /// </summary>
+    /// <param name="ts">Durée à formater.</param>
+    /// <returns>Chaîne temporelle formatée.</returns>
     public static string FormatTimeSpan(TimeSpan ts)
     {
         return ts.TotalHours >= 1
@@ -702,6 +787,12 @@ public sealed class ConsoleDashboard : IDisposable
             : string.Format(CultureInfo.InvariantCulture, "{0:D2}:{1:D2}", ts.Minutes, ts.Seconds);
     }
 
+    /// <summary>
+    /// Raccourcit un chemin d'accès au moyen d'une ellipse centrale s'il dépasse la longueur maximale allouée.
+    /// </summary>
+    /// <param name="path">Chemin à abréger.</param>
+    /// <param name="maxLength">Longueur maximale tolérée.</param>
+    /// <returns>Chemin raccourci.</returns>
     public static string ShortenPath(string path, int maxLength)
     {
         if (string.IsNullOrEmpty(path))
@@ -723,6 +814,12 @@ public sealed class ConsoleDashboard : IDisposable
         return $"{path[..halfLength]}...{path[^halfLength..]}";
     }
 
+    /// <summary>
+    /// Ajuste une chaîne à une largeur fixe en la tronquant ou en la complétant par des espaces à droite.
+    /// </summary>
+    /// <param name="text">Texte d'entrée.</param>
+    /// <param name="width">Largeur fixe souhaitée.</param>
+    /// <returns>Chaîne de longueur exactement égale à width.</returns>
     public static string PadOrTruncate(string text, int width)
     {
         if (string.IsNullOrEmpty(text))
@@ -738,6 +835,9 @@ public sealed class ConsoleDashboard : IDisposable
         return text.PadRight(width);
     }
 
+    /// <summary>
+    /// Libère les ressources du chronomètre et restaure l'état du terminal de la console.
+    /// </summary>
     public void Dispose()
     {
         _stopwatch.Stop();

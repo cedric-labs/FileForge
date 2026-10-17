@@ -32,15 +32,21 @@ public static class DirectorySynchronizer
     /// <summary>
     /// Clone un répertoire source vers une destination en mode miroir selon les options fournies.
     /// </summary>
+    /// <param name="sourceRoot">Répertoire racine source.</param>
+    /// <param name="destRoot">Répertoire racine de destination.</param>
+    /// <param name="options">Options de synchronisation et de filtrage.</param>
+    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
     public static void CloneDirectory(
         string sourceRoot,
         string destRoot,
-        DirectorySyncOptions options)
+        DirectorySyncOptions options,
+        CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(destRoot);
         ArgumentNullException.ThrowIfNull(options);
 
+        cancellationToken.ThrowIfCancellationRequested();
         using var dashboard = new ConsoleDashboard(options.TaskTitle ?? "Clone (Miroir)", sourceRoot, destRoot);
         Dashboard = dashboard;
         try
@@ -51,15 +57,18 @@ public static class DirectorySynchronizer
                 options.SourceListParallelism,
                 options.IncludedFilters,
                 options.ExcludedFilters,
-                options.CloneOptions);
+                options.CloneOptions,
+                cancellationToken);
 
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseLog("[DEBUG] Énumération des éléments cibles...");
             var dstItems = ParallelEnumerateFiles(
                 destRoot,
                 options.DestinationListParallelism,
                 options.IncludedFilters,
                 options.ExcludedFilters,
-                options.CloneOptions);
+                options.CloneOptions,
+                cancellationToken);
 
             var srcFiles = srcItems.OfType<FileInfo>().ToList();
             var dstFiles = dstItems.OfType<FileInfo>().ToList();
@@ -85,6 +94,7 @@ public static class DirectorySynchronizer
             // Création des dossiers manquants
             foreach (var dir in srcDirsMap.Keys.Except(dstDirsMap.Keys))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var fullDestDir = Path.Combine(destRoot, dir);
                 Directory.CreateDirectory(fullDestDir);
             }
@@ -102,7 +112,7 @@ public static class DirectorySynchronizer
                 long totalBytes = filesToCopy.Sum(kvp => kvp.Value.Length);
                 dashboard.SetTransferPlan(filesToCopy.Count, totalBytes);
 
-                var copiedFiles = ParallelCopyFiles(filesToCopy, destRoot, options.CopyParallelism, options.VerifyHash);
+                var copiedFiles = ParallelCopyFiles(filesToCopy, destRoot, options.CopyParallelism, options.VerifyHash, cancellationToken);
                 int failedCount = filesToCopy.Count - copiedFiles.Count;
                 if (failedCount > 0)
                 {
@@ -122,6 +132,7 @@ public static class DirectorySynchronizer
             // Suppression des fichiers obsolètes
             foreach (var path in dstFilesMap.Keys.Except(srcFilesMap.Keys))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var fullPath = Path.Combine(destRoot, path);
                 try
                 {
@@ -136,6 +147,7 @@ public static class DirectorySynchronizer
             // Suppression des dossiers obsolètes
             foreach (var path in dstDirsMap.Keys.Except(srcDirsMap.Keys).OrderByDescending(p => p.Count(c => c == Path.DirectorySeparatorChar)))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var fullPath = PathNormalizer.NormalizeLongPath(Path.Combine(destRoot, path));
 
                 if (options.CloneOptions is not null && options.CloneOptions.ExcludedPaths.Contains(path))
@@ -176,15 +188,21 @@ public static class DirectorySynchronizer
     /// <summary>
     /// Effectue une sauvegarde incrémentale stricte dans un nouveau dossier daté selon les options fournies.
     /// </summary>
+    /// <param name="sourceRoot">Répertoire racine source.</param>
+    /// <param name="destBaseDir">Répertoire racine de base recevant les sauvegardes incrémentales.</param>
+    /// <param name="options">Options de synchronisation et de filtrage.</param>
+    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
     public static void IncrementalBackup(
         string sourceRoot,
         string destBaseDir,
-        DirectorySyncOptions options)
+        DirectorySyncOptions options,
+        CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(destBaseDir);
         ArgumentNullException.ThrowIfNull(options);
 
+        cancellationToken.ThrowIfCancellationRequested();
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmm", System.Globalization.CultureInfo.InvariantCulture);
         string finalBackupPath = Path.Combine(destBaseDir, $"Backup_{timestamp}");
         string tempBackupPath = Path.Combine(destBaseDir, "Backup_In_Progress");
@@ -207,7 +225,8 @@ public static class DirectorySynchronizer
                 options.SourceListParallelism,
                 options.IncludedFilters,
                 options.ExcludedFilters,
-                options.CloneOptions);
+                options.CloneOptions,
+                cancellationToken);
 
             var srcFiles = srcItems.OfType<FileInfo>().ToList();
             var srcDirs = srcItems.OfType<DirectoryInfo>().ToList();
@@ -273,7 +292,7 @@ public static class DirectorySynchronizer
                 long totalBytes = filesToCopy.Sum(kvp => kvp.Value.Length);
                 dashboard.SetTransferPlan(filesToCopy.Count, totalBytes);
 
-                var copiedFiles = ParallelCopyFiles(filesToCopy, tempBackupPath, options.CopyParallelism, options.VerifyHash);
+                var copiedFiles = ParallelCopyFiles(filesToCopy, tempBackupPath, options.CopyParallelism, options.VerifyHash, cancellationToken);
 
                 int failedCount = filesToCopy.Count - copiedFiles.Count;
                 if (failedCount > 0)
@@ -311,13 +330,25 @@ public static class DirectorySynchronizer
         }
     }
 
+    /// <summary>
+    /// Parcourt récursivement et en parallèle un répertoire pour répertorier les fichiers et sous-dossiers correspondants aux filtres.
+    /// </summary>
+    /// <param name="rootPath">Chemin racine à explorer.</param>
+    /// <param name="maxParallelism">Degré de parallélisme maximal.</param>
+    /// <param name="includeFilters">Filtres d'inclusion séparés par point-virgule.</param>
+    /// <param name="excludeFilters">Filtres d'exclusion séparés par point-virgule.</param>
+    /// <param name="options">Options de filtrage d'exclusion globales.</param>
+    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
+    /// <returns>Liste des éléments du système de fichiers découverts.</returns>
     public static List<FileSystemInfo> ParallelEnumerateFiles(
         string rootPath,
         int maxParallelism,
         string includeFilters = "*",
         string excludeFilters = "",
-        DirectoryCloneOptions? options = null)
+        DirectoryCloneOptions? options = null,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         int activeCount = 0;
         var files = new ConcurrentBag<FileSystemInfo>();
         var dirsToScan = new ConcurrentQueue<string>();
@@ -341,7 +372,7 @@ public static class DirectorySynchronizer
         {
             if (i == 1)
             {
-                Task.Delay(100).Wait(100);
+                Task.Delay(100, cancellationToken).Wait(100, cancellationToken);
             }
 
             tasks.Add(Task.Run(() =>
@@ -350,6 +381,7 @@ public static class DirectorySynchronizer
 
                 while (process)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!dirsToScan.TryDequeue(out var currentDir))
                     {
                         if (dirsToScan.IsEmpty && Interlocked.CompareExchange(ref activeCount, 0, 0) == 0)
@@ -367,6 +399,7 @@ public static class DirectorySynchronizer
                         {
                             foreach (var subdir in Directory.EnumerateDirectories(currentDir))
                             {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 var normalizedSubdir = PathNormalizer.NormalizeLongPath(subdir);
                                 string absoluteSubdir = PathNormalizer.RemoveLongPathPrefix(normalizedSubdir);
 
@@ -382,6 +415,7 @@ public static class DirectorySynchronizer
 
                             foreach (var file in Directory.EnumerateFiles(currentDir))
                             {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 string fileName = Path.GetFileName(file);
 
                                 if (MatchesFilter(fileName, includeRegexes, excludeRegexes))
@@ -409,10 +443,10 @@ public static class DirectorySynchronizer
                         }
                     }
                 }
-            }));
+            }, cancellationToken));
         }
 
-        Task.WaitAll([.. tasks]);
+        Task.WaitAll([.. tasks], cancellationToken);
         return [.. files];
     }
 
@@ -420,7 +454,8 @@ public static class DirectorySynchronizer
         List<KeyValuePair<string, FileInfo>> filesToCopy,
         string destRoot,
         int parallelism,
-        bool verifyHash)
+        bool verifyHash,
+        CancellationToken cancellationToken = default)
     {
         var succeeded = new ConcurrentBag<string>();
         if (filesToCopy.Count == 0)
@@ -446,6 +481,7 @@ public static class DirectorySynchronizer
                 {
                     while (filesQueue.TryDequeue(out var kvp))
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         var relPath = kvp.Key;
                         var srcFile = kvp.Value;
                         var destPath = Path.Combine(destRoot, relPath);
@@ -476,7 +512,8 @@ public static class DirectorySynchronizer
                                 progressCallback: (bytesCopied, totalBytes) =>
                                 {
                                     Dashboard?.UpdateCurrentFile(relPath, bytesCopied, totalBytes);
-                                });
+                                },
+                                cancellationToken: cancellationToken);
 
                             if (copyOk)
                             {
@@ -499,10 +536,10 @@ public static class DirectorySynchronizer
                 {
                     Interlocked.Decrement(ref activeWorkers);
                 }
-            }));
+            }, cancellationToken));
         }
 
-        Task.WaitAll([.. tasks]);
+        Task.WaitAll([.. tasks], cancellationToken);
         return [.. succeeded];
     }
 
@@ -522,6 +559,7 @@ public static class DirectorySynchronizer
     /// <summary>
     /// Supprime un répertoire de manière récursive en forçant le retrait des attributs ReadOnly/System.
     /// </summary>
+    /// <param name="directoryPath">Chemin du répertoire à supprimer.</param>
     public static void ForceDeleteDirectory(string directoryPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);

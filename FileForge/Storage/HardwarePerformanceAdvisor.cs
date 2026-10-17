@@ -21,6 +21,9 @@ public static class HardwarePerformanceAdvisor
     /// <summary>
     /// Calcule le degré de parallélisme optimal en fonction des cœurs logiques, du type de disque et de la RAM.
     /// </summary>
+    /// <param name="sourcePath">Chemin de la source.</param>
+    /// <param name="destPath">Chemin de la destination.</param>
+    /// <returns>Degré de parallélisme recommandé (entre 1 et 16).</returns>
     public static int CalculateOptimalParallelism(string sourcePath, string destPath)
     {
         int processorCount = Environment.ProcessorCount;
@@ -50,6 +53,8 @@ public static class HardwarePerformanceAdvisor
     /// <summary>
     /// Détermine si un chemin est localisé sur un disque SSD via WMI.
     /// </summary>
+    /// <param name="path">Chemin d'accès ou lettre de lecteur à analyser.</param>
+    /// <returns>True si le lecteur sous-jacent est un disque SSD ou NVMe, sinon false.</returns>
     public static bool IsSsdDrive(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -108,6 +113,7 @@ public static class HardwarePerformanceAdvisor
     /// <summary>
     /// Récupère la mémoire vive physique disponible en Gigaoctets via WMI.
     /// </summary>
+    /// <returns>Quantité de mémoire vive libre en Go (4.0 Go par défaut en cas d'erreur de lecture).</returns>
     public static double GetAvailableMemoryInGB()
     {
         try

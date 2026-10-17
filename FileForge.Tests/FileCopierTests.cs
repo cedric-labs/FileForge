@@ -19,7 +19,7 @@ public class FileCopierTests
     [InlineData(64 * 1024 * 1024 + 1, 8 * 1024 * 1024)]
     [InlineData(128 * 1024 * 1024 + 1, 16 * 1024 * 1024)]
     [InlineData(600 * 1024 * 1024, 16 * 1024 * 1024)]
-    public void CalculateOptimalBufferSize_ShouldReturnSensibleSizes(long fileSize, int expectedMinSize)
+    public void CalculateOptimalBufferSize_WhenGivenFileSize_ReturnsExpectedMinimumSize(long fileSize, int expectedMinSize)
     {
         int bufferSize = FileCopier.CalculateOptimalBufferSize(fileSize);
 
@@ -30,7 +30,7 @@ public class FileCopierTests
     [InlineData(500, "500 o")]
     [InlineData(2048, "2 Ko")]
     [InlineData(5 * 1024 * 1024, "5 Mo")]
-    public void FormatFileSize_ShouldFormatCorrectly(long bytes, string expected)
+    public void FormatFileSize_WhenGivenByteCount_ReturnsExpectedString(long bytes, string expected)
     {
         string formatted = FileCopier.FormatFileSize(bytes);
 
@@ -38,7 +38,7 @@ public class FileCopierTests
     }
 
     [Fact]
-    public void CopyFile_ValidSource_ShouldCopyAndVerifyHash()
+    public void CopyFile_WhenSourceIsValidAndVerifyHashIsTrue_CopiesAndVerifiesSuccessfully()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"copy_test_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
@@ -67,7 +67,7 @@ public class FileCopierTests
     }
 
     [Fact]
-    public void CompareFileHashes_IdenticalFiles_ShouldReturnTrue()
+    public void CompareFileHashes_WhenFilesAreIdentical_ReturnsTrue()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"hash_test_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
@@ -94,7 +94,7 @@ public class FileCopierTests
     }
 
     [Fact]
-    public void CopyFile_WithDisplayProgress_ShouldSucceed()
+    public void CopyFile_WhenDisplayProgressIsTrue_CopiesSuccessfully()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"copy_prog_test_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
@@ -121,14 +121,14 @@ public class FileCopierTests
     }
 
     [Fact]
-    public void CopyFile_WhenSourceNotFound_ShouldReturnFalse()
+    public void CopyFile_WhenSourceDoesNotExist_ReturnsFalse()
     {
         bool success = FileCopier.CopyFile(@"C:\NonExistent_File_12345.txt", @"C:\NonExistent_Dest_12345.txt");
         success.Should().BeFalse();
     }
 
     [Fact]
-    public void CopyMetadata_ForDirectory_ShouldCopyDatesAndAttributes()
+    public void CopyMetadata_WhenSourceIsDirectory_CopiesDatesAndAttributes()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"meta_dir_test_{Guid.NewGuid():N}");
         var srcDir = Path.Combine(tempDir, "Src");
@@ -156,14 +156,14 @@ public class FileCopierTests
     }
 
     [Fact]
-    public void CopyAcl_WhenSourceNotFound_ShouldThrowFileNotFoundException()
+    public void CopyAcl_WhenSourceDoesNotExist_ThrowsFileNotFoundException()
     {
         var action = () => FileCopier.CopyAcl(@"C:\NonExistent_Path_Acl", @"C:\NonExistent_Path_Dst");
         action.Should().Throw<FileNotFoundException>();
     }
 
     [Fact]
-    public void CopyMetadata_ForFile_WithAcl_ShouldSucceed()
+    public void CopyMetadata_WhenSourceIsFileWithAcl_CopiesMetadataSuccessfully()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"meta_file_test_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
@@ -193,7 +193,7 @@ public class FileCopierTests
     }
 
     [Fact]
-    public void CopyAcl_ForFile_ShouldSucceed()
+    public void CopyAcl_WhenSourceIsFile_CopiesAclSuccessfully()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"acl_file_test_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
