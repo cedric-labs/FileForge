@@ -1,0 +1,56 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+end_of_line = crlf
+
+[*.cs]
+# Organization of using directives
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# File scoped namespaces
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Code style rules
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+csharp_style_pattern_matching_over_is_null_check = true:warning
+csharp_style_pattern_matching_over_as_with_null_check = true:warning
+csharp_style_inlined_variable_declaration = true:warning
+csharp_style_throw_expression = true:warning
+
+# Naming conventions
+dotnet_naming_rule.interface_should_be_prefixed_with_i.severity = warning
+dotnet_naming_rule.interface_should_be_prefixed_with_i.symbols = interface_symbols
+dotnet_naming_rule.interface_should_be_prefixed_with_i.style = prefix_i_style
+
+dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+dotnet_naming_symbols.interface_symbols.applicable_accessibilities = *
+
+dotnet_naming_style.prefix_i_style.required_prefix = I
+dotnet_naming_style.prefix_i_style.capitalization = pascal_case
+
+# Meziantou Analyzer fine tuning
+dotnet_diagnostic.MA0051.severity = none
+dotnet_diagnostic.MA0002.severity = suggestion
+dotnet_diagnostic.MA0016.severity = suggestion
+dotnet_diagnostic.MA0009.severity = suggestion
+dotnet_diagnostic.MA0011.severity = suggestion
+dotnet_diagnostic.MA0006.severity = suggestion
+dotnet_diagnostic.MA0004.severity = suggestion
+dotnet_diagnostic.MA0048.severity = suggestion
+dotnet_diagnostic.MA0026.severity = suggestion
+dotnet_diagnostic.MA0042.severity = suggestion
+dotnet_diagnostic.MA0076.severity = suggestion
+dotnet_diagnostic.MA0038.severity = suggestion
+dotnet_diagnostic.MA0064.severity = suggestion
+dotnet_diagnostic.MA0028.severity = suggestion
+dotnet_diagnostic.MA0074.severity = suggestion
+dotnet_diagnostic.MA0084.severity = suggestion
+dotnet_diagnostic.MA0053.severity = suggestion

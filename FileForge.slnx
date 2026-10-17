@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FileForge.Tests/FileForge.Tests.csproj" />
+  <Project Path="FileForge/FileForge.csproj" />
+</Solution>
