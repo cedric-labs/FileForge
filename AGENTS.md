@@ -77,6 +77,22 @@ Ce document consacre les standards de qualité logicielle, les protocoles d'outi
   - ❌ `RobustCopier` ➔ ✔️ `FileCopier`
   - ❌ `SeamlessRunner` ➔ ✔️ `SequentialTaskRunner`
 
+### Règle 7 : Standard de nommage des tests (`NomDeMethode_Condition_ResultatAttendu`)
+- **Nomenclature obligatoire** : Tout test unitaire ou d'intégration doit respecter le motif `MethodeCible_ScenarioOuCondition_ResultatAttendu` (ex. `Resolve_WhenUncPathHasDoubleBackslash_ReturnsNormalizedDiskId`, `CopyAsync_WhenTargetIsReadOnly_ThrowsUnauthorizedAccessException`).
+- **Principe fondamental** : Un échec de test dans le rapport CI / SonarQube doit se lire comme une spécification métier défaillante sans obliger à inspecter le corps du test.
+
+### Règle 8 : Typage fort & Refus de la Primitive Obsession
+- **Interdiction** de faire circuler des types primitifs (`string`, `int`, `long`) pour manipuler des concepts métier porteurs de règles de validation, d'invariants ou de formats spécifiques (ex. identifiants de volume, chemins normalisés, empreintes de hachage).
+- **Principe fondamental** : Encapsuler ces concepts dans des Value Objects immuables (`readonly record struct` ou `record class` scellé) validés dès leur instanciation.
+
+### Règle 9 : Découplage de l'Infrastructure & Inversion de dépendance
+- Le cœur métier et applicatif ne doit **jamais** dépendre directement de l'infrastructure concrète (appels directs à `Console.*`, accès bruts au disque sans abstraction, APIs natives de l'OS).
+- Tout accès aux ressources externes ou périphériques doit être injecté via des contrats d'abstraction clairs (`ILogger`, `IFileSystem`, `IVolumeResolver`), garantissant la testabilité unitaire sans contournements complexes.
+
+### Règle 10 : Asynchronisme propre & Annulation coopérative
+- **Propagation du jeton** : Toute méthode asynchrone ou réalisant des opérations d'I/O doit systématiquement accepter un paramètre `CancellationToken cancellationToken = default` et le relayer à l'ensemble des méthodes descendantes.
+- **Respect de l'annulation** : Ne jamais ignorer un jeton d'annulation ni avaler une `OperationCanceledException` sans la relancer, sauf terminaison gracieuse explicitement documentée.
+
 ---
 
 ## 3. Harnais d'Outillage Automatisé
