@@ -119,6 +119,7 @@ Ce document consacre les standards de qualité logicielle, les protocoles d'outi
 - **Évolution rétrocompatible & Surcharges** : Si une fonctionnalité d'un framework doit être enrichie ou adaptée :
   1. Faire évoluer le composant directement dans le framework hôte via des surcharges de méthodes ou des paramètres optionnels.
   2. Préserver strictement les contrats existants pour ne provoquer aucun breaking change pour les autres projets consommateurs.
+- **Création d'un nouveau Framework & Validation du nom** : Si une fonctionnalité générique ne correspond à aucun framework existant et nécessite d'en créer un nouveau, l'agent a l'interdiction de créer le projet unilatéralement. Il doit obligatoirement proposer 2 ou 3 suggestions de noms sobres et factuels (sans buzzwords d'IA) à l'utilisateur et attendre sa validation explicite avant d'initialiser le framework.
 - **Mise à jour documentaire & Validation obligatoire** :
   1. Mettre à jour immédiatement le fichier `FRAMEWORK.md` du framework concerné dès qu'une capacité est ajoutée ou modifiée.
   2. Exécuter `./verify.ps1` à la racine du framework et s'assurer que la Quality Gate SonarQube est **PASSED** avant d'intégrer le composant dans l'application cliente.
