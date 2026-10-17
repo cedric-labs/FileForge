@@ -63,6 +63,20 @@ Ce document consacre les standards de qualité logicielle, les protocoles d'outi
   - Ne **JAMAIS** paraphraser le code (le code doit être expressif et auto-documenté).
   - Les commentaires doivent expliquer exclusivement le **POURQUOI** : décisions d'architecture non intuitives, contournements de bugs de l'OS/terminal, exigences de performance, invariants métier critiques.
 
+### Règle 6 : Zéro marqueur lexical d'IA (Nommage sobre et factuel)
+- **Interdiction formelle** d'utiliser des qualificatifs mélioratifs, vagues ou des tics de langage d'IA dans le nommage des méthodes, classes, interfaces, variables, commits et commentaires :
+  - `*Robust*`
+  - `*Resilient*`
+  - `*Seamless*`
+  - `*Smart*`
+  - `*Advanced*`
+  - `*Comprehensive*`
+  - `*Ultimate*`
+- **Principe fondamental** : Nommer par **l'intention technique factuelle** et non par une auto-évaluation subjective de la qualité du code :
+  - ❌ `DeleteDirectoryRobust` ➔ ✔️ `ForceDeleteDirectory` ou `DeleteDirectoryWithRetries`
+  - ❌ `RobustCopier` ➔ ✔️ `FileCopier`
+  - ❌ `SeamlessRunner` ➔ ✔️ `SequentialTaskRunner`
+
 ---
 
 ## 3. Harnais d'Outillage Automatisé

@@ -144,7 +144,7 @@ public static class DirectorySynchronizer
                     {
                         try
                         {
-                            DeleteDirectoryRobust(fullPath);
+                            ForceDeleteDirectory(fullPath);
                         }
                         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                         {
@@ -199,7 +199,7 @@ public static class DirectorySynchronizer
             if (Directory.Exists(tempBackupPath))
             {
                 RaiseLog("[WARN] Un dossier temporaire existant a été détecté. Nettoyage en cours...");
-                DeleteDirectoryRobust(tempBackupPath);
+                ForceDeleteDirectory(tempBackupPath);
             }
 
             var srcItems = ParallelEnumerateFiles(
@@ -522,7 +522,7 @@ public static class DirectorySynchronizer
     /// <summary>
     /// Supprime un répertoire de manière récursive en forçant le retrait des attributs ReadOnly/System.
     /// </summary>
-    public static void DeleteDirectoryRobust(string directoryPath)
+    public static void ForceDeleteDirectory(string directoryPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
 

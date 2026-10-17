@@ -90,7 +90,7 @@ public class DirectorySynchronizerTests
         {
             if (Directory.Exists(tempRoot))
             {
-                DirectorySynchronizer.DeleteDirectoryRobust(tempRoot);
+                DirectorySynchronizer.ForceDeleteDirectory(tempRoot);
             }
         }
     }
@@ -136,15 +136,15 @@ public class DirectorySynchronizerTests
         {
             if (Directory.Exists(tempRoot))
             {
-                DirectorySynchronizer.DeleteDirectoryRobust(tempRoot);
+                DirectorySynchronizer.ForceDeleteDirectory(tempRoot);
             }
         }
     }
 
     [Fact]
-    public void DeleteDirectoryRobust_WhenDirectoryHasReadOnlySubdirectoryAndFiles_ShouldDeleteSuccessfully()
+    public void ForceDeleteDirectory_WhenDirectoryHasReadOnlySubdirectoryAndFiles_ShouldDeleteSuccessfully()
     {
-        var tempRoot = Path.Combine(Path.GetTempPath(), $"robust_del_test_{Guid.NewGuid():N}");
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"force_del_test_{Guid.NewGuid():N}");
         var subDir = Path.Combine(tempRoot, "SubDir_ReadOnly");
         var filePath = Path.Combine(subDir, "file_readonly.txt");
 
@@ -155,25 +155,25 @@ public class DirectorySynchronizerTests
         File.SetAttributes(subDir, FileAttributes.ReadOnly | FileAttributes.Directory);
         File.SetAttributes(tempRoot, FileAttributes.ReadOnly | FileAttributes.Directory);
 
-        DirectorySynchronizer.DeleteDirectoryRobust(tempRoot);
+        DirectorySynchronizer.ForceDeleteDirectory(tempRoot);
 
         Directory.Exists(tempRoot).Should().BeFalse();
     }
 
     [Fact]
-    public void DeleteDirectoryRobust_WhenDirectoryDoesNotExist_ShouldReturnSilently()
+    public void ForceDeleteDirectory_WhenDirectoryDoesNotExist_ShouldReturnSilently()
     {
         var nonExistentPath = Path.Combine(Path.GetTempPath(), $"non_existent_{Guid.NewGuid():N}");
 
-        var action = () => DirectorySynchronizer.DeleteDirectoryRobust(nonExistentPath);
+        var action = () => DirectorySynchronizer.ForceDeleteDirectory(nonExistentPath);
 
         action.Should().NotThrow();
     }
 
     [Fact]
-    public void DeleteDirectoryRobust_WhenPathIsNullOrWhiteSpace_ShouldThrowArgumentException()
+    public void ForceDeleteDirectory_WhenPathIsNullOrWhiteSpace_ShouldThrowArgumentException()
     {
-        var action = () => DirectorySynchronizer.DeleteDirectoryRobust("   ");
+        var action = () => DirectorySynchronizer.ForceDeleteDirectory("   ");
 
         action.Should().Throw<ArgumentException>();
     }
