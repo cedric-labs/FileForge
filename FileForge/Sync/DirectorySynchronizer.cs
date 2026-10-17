@@ -41,128 +41,135 @@ public static class DirectorySynchronizer
         ArgumentException.ThrowIfNullOrWhiteSpace(destRoot);
         ArgumentNullException.ThrowIfNull(options);
 
-        RaiseLog("[DEBUG] Énumération des éléments sources...");
-        var srcItems = ParallelEnumerateFiles(
-            sourceRoot,
-            options.SourceListParallelism,
-            options.IncludedFilters,
-            options.ExcludedFilters,
-            options.CloneOptions);
-
-        RaiseLog("[DEBUG] Énumération des éléments cibles...");
-        var dstItems = ParallelEnumerateFiles(
-            destRoot,
-            options.DestinationListParallelism,
-            options.IncludedFilters,
-            options.ExcludedFilters,
-            options.CloneOptions);
-
-        var srcFiles = srcItems.OfType<FileInfo>().ToList();
-        var dstFiles = dstItems.OfType<FileInfo>().ToList();
-        var srcDirs = srcItems.OfType<DirectoryInfo>().ToList();
-        var dstDirs = dstItems.OfType<DirectoryInfo>().ToList();
-
-        var srcDirsMap = srcDirs.ToDictionary(d => Path.GetRelativePath(sourceRoot, PathNormalizer.RemoveLongPathPrefix(d.FullName)));
-        var dstDirsMap = dstDirs.ToDictionary(d => Path.GetRelativePath(destRoot, PathNormalizer.RemoveLongPathPrefix(d.FullName)));
-        var srcFilesMap = srcFiles.ToDictionary(f => Path.GetRelativePath(sourceRoot, PathNormalizer.RemoveLongPathPrefix(f.FullName)));
-        var dstFilesMap = dstFiles.ToDictionary(f => Path.GetRelativePath(destRoot, PathNormalizer.RemoveLongPathPrefix(f.FullName)));
-
-        if (options.CloneOptions is not null)
+        using var dashboard = new ConsoleDashboard(options.TaskTitle ?? "Clone (Miroir)", sourceRoot, destRoot);
+        Dashboard = dashboard;
+        try
         {
-            srcFilesMap = srcFilesMap
-                .Where(kvp => !options.CloneOptions.IsExcluded(PathNormalizer.RemoveLongPathPrefix(kvp.Value.FullName)))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            RaiseLog("[DEBUG] Énumération des éléments sources...");
+            var srcItems = ParallelEnumerateFiles(
+                sourceRoot,
+                options.SourceListParallelism,
+                options.IncludedFilters,
+                options.ExcludedFilters,
+                options.CloneOptions);
 
-            srcDirsMap = srcDirsMap
-                .Where(kvp => !options.CloneOptions.IsExcluded(PathNormalizer.RemoveLongPathPrefix(kvp.Value.FullName)))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        }
+            RaiseLog("[DEBUG] Énumération des éléments cibles...");
+            var dstItems = ParallelEnumerateFiles(
+                destRoot,
+                options.DestinationListParallelism,
+                options.IncludedFilters,
+                options.ExcludedFilters,
+                options.CloneOptions);
 
-        // Création des dossiers manquants
-        foreach (var dir in srcDirsMap.Keys.Except(dstDirsMap.Keys))
-        {
-            var fullDestDir = Path.Combine(destRoot, dir);
-            Directory.CreateDirectory(fullDestDir);
-        }
+            var srcFiles = srcItems.OfType<FileInfo>().ToList();
+            var dstFiles = dstItems.OfType<FileInfo>().ToList();
+            var srcDirs = srcItems.OfType<DirectoryInfo>().ToList();
+            var dstDirs = dstItems.OfType<DirectoryInfo>().ToList();
 
-        // Copie des fichiers nouveaux ou modifiés
-        var filesToCopy = srcFilesMap.Where(kvp =>
-        {
-            var relPath = kvp.Key;
-            var srcFile = kvp.Value;
-            return !dstFilesMap.TryGetValue(relPath, out var dstFile) || dstFile.LastWriteTime < srcFile.LastWriteTime;
-        }).ToList();
+            var srcDirsMap = srcDirs.ToDictionary(d => Path.GetRelativePath(sourceRoot, PathNormalizer.RemoveLongPathPrefix(d.FullName)));
+            var dstDirsMap = dstDirs.ToDictionary(d => Path.GetRelativePath(destRoot, PathNormalizer.RemoveLongPathPrefix(d.FullName)));
+            var srcFilesMap = srcFiles.ToDictionary(f => Path.GetRelativePath(sourceRoot, PathNormalizer.RemoveLongPathPrefix(f.FullName)));
+            var dstFilesMap = dstFiles.ToDictionary(f => Path.GetRelativePath(destRoot, PathNormalizer.RemoveLongPathPrefix(f.FullName)));
 
-        if (filesToCopy.Count > 0)
-        {
-            long totalBytes = filesToCopy.Sum(kvp => kvp.Value.Length);
-            using var dashboard = new ConsoleDashboard(options.TaskTitle ?? "Clone (Miroir)", sourceRoot, destRoot, filesToCopy.Count, totalBytes);
-            Dashboard = dashboard;
-            try
+            if (options.CloneOptions is not null)
             {
+                srcFilesMap = srcFilesMap
+                    .Where(kvp => !options.CloneOptions.IsExcluded(PathNormalizer.RemoveLongPathPrefix(kvp.Value.FullName)))
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                srcDirsMap = srcDirsMap
+                    .Where(kvp => !options.CloneOptions.IsExcluded(PathNormalizer.RemoveLongPathPrefix(kvp.Value.FullName)))
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
+
+            // Création des dossiers manquants
+            foreach (var dir in srcDirsMap.Keys.Except(dstDirsMap.Keys))
+            {
+                var fullDestDir = Path.Combine(destRoot, dir);
+                Directory.CreateDirectory(fullDestDir);
+            }
+
+            // Copie des fichiers nouveaux ou modifiés
+            var filesToCopy = srcFilesMap.Where(kvp =>
+            {
+                var relPath = kvp.Key;
+                var srcFile = kvp.Value;
+                return !dstFilesMap.TryGetValue(relPath, out var dstFile) || dstFile.LastWriteTime < srcFile.LastWriteTime;
+            }).ToList();
+
+            if (filesToCopy.Count > 0)
+            {
+                long totalBytes = filesToCopy.Sum(kvp => kvp.Value.Length);
+                dashboard.SetTransferPlan(filesToCopy.Count, totalBytes);
+
                 var copiedFiles = ParallelCopyFiles(filesToCopy, destRoot, options.CopyParallelism, options.VerifyHash);
                 int failedCount = filesToCopy.Count - copiedFiles.Count;
                 if (failedCount > 0)
                 {
                     RaiseLog($"[WARN] {failedCount} fichier(s) n'ont pas pu être copiés vers la destination.");
                 }
-            }
-            finally
-            {
-                Dashboard = null;
-            }
-        }
-        else
-        {
-            RaiseLog("[DEBUG] Aucun changement détecté. Aucun fichier écrit.");
-        }
 
-        // Suppression des fichiers obsolètes
-        foreach (var path in dstFilesMap.Keys.Except(srcFilesMap.Keys))
-        {
-            var fullPath = Path.Combine(destRoot, path);
-            try
-            {
-                File.Delete(fullPath);
+                dashboard.Complete(failedCount > 0
+                    ? $"Clonage terminé avec {failedCount} fichier(s) en échec."
+                    : "Clonage (Miroir) terminé avec succès.");
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            else
             {
-                RaiseLog($"[WARN] Suppression du fichier impossible ({fullPath}) : {ex.Message}");
-            }
-        }
-
-        // Suppression des dossiers obsolètes
-        foreach (var path in dstDirsMap.Keys.Except(srcDirsMap.Keys).OrderByDescending(p => p.Count(c => c == Path.DirectorySeparatorChar)))
-        {
-            var fullPath = PathNormalizer.NormalizeLongPath(Path.Combine(destRoot, path));
-
-            if (options.CloneOptions is not null && options.CloneOptions.ExcludedPaths.Contains(path))
-            {
-                if (Directory.Exists(fullPath))
-                {
-                    try
-                    {
-                        DeleteDirectoryRobust(fullPath);
-                    }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                    {
-                        RaiseLog($"[WARN] Échec de la suppression du dossier exclu ({fullPath}) : {ex.Message}");
-                    }
-                }
-                continue;
+                dashboard.SetUpToDate("Dossier miroir déjà synchronisé.");
+                RaiseLog("[DEBUG] Aucun changement détecté. Aucun fichier écrit.");
             }
 
-            if (Directory.Exists(fullPath) && !Directory.EnumerateFileSystemEntries(fullPath).Any())
+            // Suppression des fichiers obsolètes
+            foreach (var path in dstFilesMap.Keys.Except(srcFilesMap.Keys))
             {
+                var fullPath = Path.Combine(destRoot, path);
                 try
                 {
-                    Directory.Delete(fullPath);
+                    File.Delete(fullPath);
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    RaiseLog($"[WARN] Échec de la suppression du dossier ({fullPath}) : {ex.Message}");
+                    RaiseLog($"[WARN] Suppression du fichier impossible ({fullPath}) : {ex.Message}");
                 }
             }
+
+            // Suppression des dossiers obsolètes
+            foreach (var path in dstDirsMap.Keys.Except(srcDirsMap.Keys).OrderByDescending(p => p.Count(c => c == Path.DirectorySeparatorChar)))
+            {
+                var fullPath = PathNormalizer.NormalizeLongPath(Path.Combine(destRoot, path));
+
+                if (options.CloneOptions is not null && options.CloneOptions.ExcludedPaths.Contains(path))
+                {
+                    if (Directory.Exists(fullPath))
+                    {
+                        try
+                        {
+                            DeleteDirectoryRobust(fullPath);
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                        {
+                            RaiseLog($"[WARN] Échec de la suppression du dossier exclu ({fullPath}) : {ex.Message}");
+                        }
+                    }
+                    continue;
+                }
+
+                if (Directory.Exists(fullPath) && !Directory.EnumerateFileSystemEntries(fullPath).Any())
+                {
+                    try
+                    {
+                        Directory.Delete(fullPath);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        RaiseLog($"[WARN] Échec de la suppression du dossier ({fullPath}) : {ex.Message}");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            Dashboard = null;
         }
     }
 
@@ -183,119 +190,124 @@ public static class DirectorySynchronizer
         string tempBackupPath = Path.Combine(destBaseDir, "Backup_In_Progress");
         string indexFilePath = Path.Combine(destBaseDir, "backup_catalog.dat");
 
-        RaiseLog("[DEBUG] Préparation de la sauvegarde incrémentale dans le dossier temporaire.");
-
-        if (Directory.Exists(tempBackupPath))
+        using var dashboard = new ConsoleDashboard(options.TaskTitle ?? "Incrémentale", sourceRoot, destBaseDir);
+        Dashboard = dashboard;
+        try
         {
-            RaiseLog("[WARN] Un dossier temporaire existant a été détecté. Nettoyage en cours...");
-            DeleteDirectoryRobust(tempBackupPath);
-        }
+            RaiseLog("[DEBUG] Préparation de la sauvegarde incrémentale dans le dossier temporaire.");
 
-        var srcItems = ParallelEnumerateFiles(
-            sourceRoot,
-            options.SourceListParallelism,
-            options.IncludedFilters,
-            options.ExcludedFilters,
-            options.CloneOptions);
-
-        var srcFiles = srcItems.OfType<FileInfo>().ToList();
-        var srcDirs = srcItems.OfType<DirectoryInfo>().ToList();
-
-        var srcFilesMap = srcFiles.ToDictionary(f => Path.GetRelativePath(sourceRoot, PathNormalizer.RemoveLongPathPrefix(f.FullName)));
-        var srcDirsMap = srcDirs.ToDictionary(d => Path.GetRelativePath(sourceRoot, PathNormalizer.RemoveLongPathPrefix(d.FullName)));
-
-        if (options.CloneOptions is not null)
-        {
-            srcFilesMap = srcFilesMap.Where(kvp => !options.CloneOptions.IsExcluded(PathNormalizer.RemoveLongPathPrefix(kvp.Value.FullName))).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            srcDirsMap = srcDirsMap.Where(kvp => !options.CloneOptions.IsExcluded(PathNormalizer.RemoveLongPathPrefix(kvp.Value.FullName))).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        }
-
-        var previousCatalog = SyncCatalogRepository.LoadCatalog(indexFilePath);
-        var currentCatalog = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var pendingFingerprints = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        var filesToCopy = new List<KeyValuePair<string, FileInfo>>();
-        var dirsToCreate = new HashSet<string>();
-
-        foreach (var kvp in srcFilesMap)
-        {
-            string relPath = kvp.Key;
-            var srcFile = kvp.Value;
-            string fileFingerprint = $"{srcFile.LastWriteTimeUtc.Ticks}_{srcFile.Length}";
-
-            if (!previousCatalog.TryGetValue(relPath, out var prevFingerprint) || prevFingerprint != fileFingerprint)
+            if (Directory.Exists(tempBackupPath))
             {
-                filesToCopy.Add(kvp);
-                pendingFingerprints[relPath] = fileFingerprint;
+                RaiseLog("[WARN] Un dossier temporaire existant a été détecté. Nettoyage en cours...");
+                DeleteDirectoryRobust(tempBackupPath);
+            }
 
-                string? parentDir = Path.GetDirectoryName(relPath);
-                while (!string.IsNullOrEmpty(parentDir))
+            var srcItems = ParallelEnumerateFiles(
+                sourceRoot,
+                options.SourceListParallelism,
+                options.IncludedFilters,
+                options.ExcludedFilters,
+                options.CloneOptions);
+
+            var srcFiles = srcItems.OfType<FileInfo>().ToList();
+            var srcDirs = srcItems.OfType<DirectoryInfo>().ToList();
+
+            var srcFilesMap = srcFiles.ToDictionary(f => Path.GetRelativePath(sourceRoot, PathNormalizer.RemoveLongPathPrefix(f.FullName)));
+            var srcDirsMap = srcDirs.ToDictionary(d => Path.GetRelativePath(sourceRoot, PathNormalizer.RemoveLongPathPrefix(d.FullName)));
+
+            if (options.CloneOptions is not null)
+            {
+                srcFilesMap = srcFilesMap.Where(kvp => !options.CloneOptions.IsExcluded(PathNormalizer.RemoveLongPathPrefix(kvp.Value.FullName))).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                srcDirsMap = srcDirsMap.Where(kvp => !options.CloneOptions.IsExcluded(PathNormalizer.RemoveLongPathPrefix(kvp.Value.FullName))).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
+
+            var previousCatalog = SyncCatalogRepository.LoadCatalog(indexFilePath);
+            var currentCatalog = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var pendingFingerprints = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            var filesToCopy = new List<KeyValuePair<string, FileInfo>>();
+            var dirsToCreate = new HashSet<string>();
+
+            foreach (var kvp in srcFilesMap)
+            {
+                string relPath = kvp.Key;
+                var srcFile = kvp.Value;
+                string fileFingerprint = $"{srcFile.LastWriteTimeUtc.Ticks}_{srcFile.Length}";
+
+                if (!previousCatalog.TryGetValue(relPath, out var prevFingerprint) || prevFingerprint != fileFingerprint)
                 {
-                    if (srcDirsMap.ContainsKey(parentDir))
+                    filesToCopy.Add(kvp);
+                    pendingFingerprints[relPath] = fileFingerprint;
+
+                    string? parentDir = Path.GetDirectoryName(relPath);
+                    while (!string.IsNullOrEmpty(parentDir))
                     {
-                        dirsToCreate.Add(parentDir);
+                        if (srcDirsMap.ContainsKey(parentDir))
+                        {
+                            dirsToCreate.Add(parentDir);
+                        }
+                        parentDir = Path.GetDirectoryName(parentDir);
                     }
-                    parentDir = Path.GetDirectoryName(parentDir);
                 }
+                else
+                {
+                    currentCatalog[relPath] = fileFingerprint;
+                }
+            }
+
+            if (filesToCopy.Count > 0)
+            {
+                Directory.CreateDirectory(tempBackupPath);
+
+                foreach (var dir in dirsToCreate.OrderBy(p => p.Length))
+                {
+                    string fullDestDir = Path.Combine(tempBackupPath, dir);
+                    if (!Directory.Exists(fullDestDir))
+                    {
+                        Directory.CreateDirectory(fullDestDir);
+                        FileCopier.CopyMetadata(Path.Combine(sourceRoot, dir), fullDestDir, false);
+                    }
+                }
+
+                RaiseLog($"[DEBUG] Copie de {filesToCopy.Count} fichier(s) vers le stockage temporaire...");
+                long totalBytes = filesToCopy.Sum(kvp => kvp.Value.Length);
+                dashboard.SetTransferPlan(filesToCopy.Count, totalBytes);
+
+                var copiedFiles = ParallelCopyFiles(filesToCopy, tempBackupPath, options.CopyParallelism, options.VerifyHash);
+
+                int failedCount = filesToCopy.Count - copiedFiles.Count;
+                if (failedCount > 0)
+                {
+                    RaiseLog($"[WARN] {failedCount} fichier(s) n'ont pas pu être copiés et seront retentés au prochain passage.");
+                }
+
+                foreach (var relPath in copiedFiles)
+                {
+                    currentCatalog[relPath] = pendingFingerprints[relPath];
+                }
+
+                RaiseLog($"[DEBUG] Validation de la sauvegarde. Renommage vers {finalBackupPath}...");
+                if (Directory.Exists(finalBackupPath))
+                {
+                    finalBackupPath += "_" + DateTime.Now.ToString("ss", System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                Directory.Move(tempBackupPath, finalBackupPath);
+                SyncCatalogRepository.SaveCatalog(currentCatalog, indexFilePath);
+                dashboard.Complete(failedCount > 0
+                    ? $"Sauvegarde validée avec {failedCount} fichier(s) en échec."
+                    : "Sauvegarde incrémentale validée et enregistrée avec succès.");
+                RaiseLog("[DEBUG] Sauvegarde incrémentale validée et enregistrée avec succès.");
             }
             else
             {
-                currentCatalog[relPath] = fileFingerprint;
+                dashboard.SetUpToDate("Disque déjà à jour, aucun changement détecté.");
+                RaiseLog("[DEBUG] Aucun changement détecté. Aucun fichier écrit.");
             }
         }
-
-        if (filesToCopy.Count > 0)
+        finally
         {
-            Directory.CreateDirectory(tempBackupPath);
-
-            foreach (var dir in dirsToCreate.OrderBy(p => p.Length))
-            {
-                string fullDestDir = Path.Combine(tempBackupPath, dir);
-                if (!Directory.Exists(fullDestDir))
-                {
-                    Directory.CreateDirectory(fullDestDir);
-                    FileCopier.CopyMetadata(Path.Combine(sourceRoot, dir), fullDestDir, false);
-                }
-            }
-
-            RaiseLog($"[DEBUG] Copie de {filesToCopy.Count} fichier(s) vers le stockage temporaire...");
-            long totalBytes = filesToCopy.Sum(kvp => kvp.Value.Length);
-            using var dashboard = new ConsoleDashboard(options.TaskTitle ?? "Incrémentale", sourceRoot, tempBackupPath, filesToCopy.Count, totalBytes);
-            Dashboard = dashboard;
-            HashSet<string> copiedFiles;
-            try
-            {
-                copiedFiles = ParallelCopyFiles(filesToCopy, tempBackupPath, options.CopyParallelism, options.VerifyHash);
-            }
-            finally
-            {
-                Dashboard = null;
-            }
-
-            int failedCount = filesToCopy.Count - copiedFiles.Count;
-            if (failedCount > 0)
-            {
-                RaiseLog($"[WARN] {failedCount} fichier(s) n'ont pas pu être copiés et seront retentés au prochain passage.");
-            }
-
-            foreach (var relPath in copiedFiles)
-            {
-                currentCatalog[relPath] = pendingFingerprints[relPath];
-            }
-
-            RaiseLog($"[DEBUG] Validation de la sauvegarde. Renommage vers {finalBackupPath}...");
-            if (Directory.Exists(finalBackupPath))
-            {
-                finalBackupPath += "_" + DateTime.Now.ToString("ss", System.Globalization.CultureInfo.InvariantCulture);
-            }
-
-            Directory.Move(tempBackupPath, finalBackupPath);
-            SyncCatalogRepository.SaveCatalog(currentCatalog, indexFilePath);
-            RaiseLog("[DEBUG] Sauvegarde incrémentale validée et enregistrée avec succès.");
-        }
-        else
-        {
-            RaiseLog("[DEBUG] Aucun changement détecté. Aucun fichier écrit.");
+            Dashboard = null;
         }
     }
 
@@ -349,6 +361,7 @@ public static class DirectorySynchronizer
                     {
                         Interlocked.Increment(ref activeCount);
                         Interlocked.Increment(ref processedDirs);
+                        Dashboard?.UpdateScanning(currentDir, totalItemsFound);
 
                         try
                         {

@@ -205,4 +205,49 @@ public class ConsoleDashboardTests
         var act = () => dashboard.DrawNortonBox(leftMargin: 0, boxWidth: 60, windowWidth: 60);
         act.Should().NotThrow();
     }
+
+    [Fact]
+    public void DashboardPhases_Lifecycle_ShouldTransitionAndRenderCorrectly()
+    {
+        using var dashboard = new ConsoleDashboard(
+            taskName: "Lifecycle Test",
+            sourceRoot: @"D:\Source",
+            destRoot: @"G:\Dest");
+
+        dashboard.Phase.Should().Be(DashboardPhase.Scanning);
+
+        dashboard.UpdateScanning(@"D:\Source\SubFolder", 125);
+        string scanBox = dashboard.BuildDashboardString(80);
+        scanBox.Should().Contain("Inventaire / Analyse");
+        scanBox.Should().Contain("125 éléments");
+
+        var actScan = () => dashboard.DrawNortonBox(0, 80, 80);
+        actScan.Should().NotThrow();
+
+        // Transition UpToDate
+        dashboard.SetUpToDate("Disque déjà synchronisé");
+        dashboard.Phase.Should().Be(DashboardPhase.UpToDate);
+        string upToDateBox = dashboard.BuildDashboardString(80);
+        upToDateBox.Should().Contain("Disque déjà synchronisé");
+        upToDateBox.Should().Contain("Aucun transfert nécessaire");
+
+        var actUpToDate = () => dashboard.DrawNortonBox(0, 80, 80);
+        actUpToDate.Should().NotThrow();
+
+        // Transition Copying
+        dashboard.SetTransferPlan(5, 5000);
+        dashboard.Phase.Should().Be(DashboardPhase.Copying);
+        dashboard.CompleteFile(1000);
+        dashboard.FailFile(1000);
+
+        // Transition Completed
+        dashboard.Complete("Sauvegarde finalisée avec succès");
+        dashboard.Phase.Should().Be(DashboardPhase.Completed);
+        string completedBox = dashboard.BuildDashboardString(80);
+        completedBox.Should().Contain("Sauvegarde finalisée");
+        completedBox.Should().Contain("1 en échec");
+
+        var actComp = () => dashboard.DrawNortonBox(0, 80, 80);
+        actComp.Should().NotThrow();
+    }
 }
