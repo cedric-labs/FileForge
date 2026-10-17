@@ -62,6 +62,12 @@ public class VolumeIdentityResolverTests
         VolumeIdentityResolver.GetVolumeIdFromPath("relative/subfolder").Should().BeNull();
     }
 
+    [Fact]
+    public void GetVolumeIdFromPath_WhenInvalidDrive_ShouldReturnNull()
+    {
+        VolumeIdentityResolver.GetVolumeIdFromPath(@"Z:\NonExistentDrive_12345\").Should().BeNull();
+    }
+
     [Theory]
     [InlineData(@"UNC:\karine-pc\Didi", @"UNC:\\karine-pc\Didi", true)]
     [InlineData(@"UNC:\\karine-pc\didi", @"unc:\karine-pc\DIDI", true)]

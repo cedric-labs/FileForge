@@ -153,4 +153,60 @@ public class FileCopierTests
         var action = () => FileCopier.CopyAcl(@"C:\NonExistent_Path_Acl", @"C:\NonExistent_Path_Dst");
         action.Should().Throw<FileNotFoundException>();
     }
+
+    [Fact]
+    public void CopyMetadata_ForFile_WithAcl_ShouldSucceed()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"meta_file_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        var srcFile = Path.Combine(tempDir, "file_src.txt");
+        var dstFile = Path.Combine(tempDir, "file_dst.txt");
+
+        try
+        {
+            File.WriteAllText(srcFile, "data");
+            File.WriteAllText(dstFile, "data");
+
+            var pastDate = new DateTime(2021, 5, 10, 8, 30, 0, DateTimeKind.Utc);
+            File.SetLastWriteTimeUtc(srcFile, pastDate);
+
+            FileCopier.CopyMetadata(srcFile, dstFile, includeAcl: true);
+
+            File.GetLastWriteTimeUtc(dstFile).Should().Be(pastDate);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void CopyAcl_ForFile_ShouldSucceed()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"acl_file_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        var srcFile = Path.Combine(tempDir, "file_src.txt");
+        var dstFile = Path.Combine(tempDir, "file_dst.txt");
+
+        try
+        {
+            File.WriteAllText(srcFile, "data");
+            File.WriteAllText(dstFile, "data");
+
+            var action = () => FileCopier.CopyAcl(srcFile, dstFile);
+            action.Should().NotThrow();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
 }
