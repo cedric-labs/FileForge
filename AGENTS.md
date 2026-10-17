@@ -1,6 +1,6 @@
 # Instructions pour Agents IA & Standards d'Ingénierie Logicielle (AGENTS.md)
 
-Ce document consacre les standards de qualité logicielle, les protocoles d'outillage obligatoires et les règles non négociables pour le projet **FileForge**. Tout agent intervenant sur cette base de code doit s'y conformer strictement.
+Ce document consacre les standards de qualité logicielle, les protocoles d'outillage obligatoires et les règles non négociables pour le projet **Anima**. Tout agent intervenant sur cette base de code doit s'y conformer strictement.
 
 ---
 
@@ -16,7 +16,7 @@ Ce document consacre les standards de qualité logicielle, les protocoles d'outi
 
 ### 1.2. Intégration SonarQube Systématique
 - **SonarQube n'est pas optionnel** : Il constitue le juge de paix de la qualité du code.
-- **Provisioning** : Dès l'installation du harnais qualité, s'assurer que le projet est référencé sur l'instance locale (`http://localhost:9000`), avec la clé projet `FileForge`.
+- **Provisioning** : Dès l'installation du harnais qualité, s'assurer que le projet est référencé sur l'instance locale (`http://localhost:9000`), avec la clé projet `Anima`.
 - **Validation continue** : Le script `./verify.ps1` orchestre l'analyse SonarScanner. Aucune tâche n'est considérée comme achevée tant que le statut retourné n'est pas **QUALITY GATE STATUS: PASSED**.
 
 ---
@@ -101,6 +101,28 @@ Ce document consacre les standards de qualité logicielle, les protocoles d'outi
 - **Contrats d'interface documentés** : Toute interface publique, méthode d'interface, énumération publique et propriété de contrat doit comporter une documentation XML (`///`) complète (`<summary>`, `<param>`, `<returns>`, `<exception>`).
 - **Zéro bruit sur le code interne** : Ne pas polluer les méthodes privées, locales ou évidentes avec des commentaires XML mécaniques. Réserver la documentation XML aux points d'entrée et abstractions du système.
 
+### Règle 13 : Couverture E2E & Tests IHM obligatoires avec Playwright (Projets Web)
+- **Périmètre d'application** : Dès lors qu'un projet est de nature Web (Blazor, ASP.NET Core MVC / Razor Pages, ou UI Web servie par .NET), l'installation automatique de **Playwright** et la mise en place d'une suite de tests E2E dédiée sont obligatoires.
+- **Exhaustivité du périmètre IHM couvert** :
+  - **Affichage & Rendu structurel** : Vérification de la présence, de la visibilité et du bon agencement des conteneurs, tableaux, formulaires, barres de navigation et éléments visuels.
+  - **Interactivité complète** : Déclenchement et validation du bon fonctionnement de 100 % des boutons, liens de navigation, champs de saisie, cases à cocher, menus déroulants et fenêtres modales.
+  - **Intégrité et exactitude des données** : Assertion explicite sur l'exactitude des valeurs affichées à l'écran (textes calculés, montants, compteurs, labels dynamiques, messages de confirmation ou d'erreur).
+- **Architecture Page Object Model (POM) obligatoire** :
+  - Interdiction formelle de coder des sélecteurs CSS ou XPath bruts directement dans les méthodes de test.
+  - Encapsuler chaque page ou composant réutilisable dans une classe Page Object dédiée (ex. `LoginPage`, `DashboardPage`, `NavbarComponent`) exposant des méthodes d'action métier et des accesseurs typés.
+- **Nomenclature stricte des tests** : Respect obligatoire du motif de la Règle 7 (ex. `DashboardPage_WhenLoaded_DisplaysAccurateCounterValues`, `ExportButton_WhenClicked_TriggersDownload`).
+- **Exécution automatisée** : Les tests Playwright doivent pouvoir s'exécuter de façon autonome en mode headless (sans interface graphique visible) lors du pipeline `./verify.ps1`.
+
+### Règle 14 : Réutilisation systématique & Capitalisation dans les Frameworks partagés
+- **Réflexe préalable d'inspection** : Avant d'implémenter un composant technique, un utilitaire, une opération d'I/O, du hachage, un algorithme ou du rendu terminal non spécifique au métier, inspecter le catalogue central des frameworks partagés (`D:\Dev\Framework\FRAMEWORKS_INDEX.md`).
+- **Interdiction formelle de duplication** : Ne jamais réécrire localement une brique déjà présente dans un framework partagé. Référencer le projet concerné (`<ProjectReference>`).
+- **Évolution rétrocompatible & Surcharges** : Si une fonctionnalité d'un framework doit être enrichie ou adaptée :
+  1. Faire évoluer le composant directement dans le framework hôte via des surcharges de méthodes ou des paramètres optionnels.
+  2. Préserver strictement les contrats existants pour ne provoquer aucun breaking change pour les autres projets consommateurs.
+- **Mise à jour documentaire & Validation obligatoire** :
+  1. Mettre à jour immédiatement le fichier `FRAMEWORK.md` du framework concerné dès qu'une capacité est ajoutée ou modifiée.
+  2. Exécuter `./verify.ps1` à la racine du framework et s'assurer que la Quality Gate SonarQube est **PASSED** avant d'intégrer le composant dans l'application cliente.
+
 ---
 
 ## 3. Harnais d'Outillage Automatisé
@@ -125,5 +147,5 @@ Le projet s'appuie sur une suite automatisée de contrôles stricts déclarés a
    - [2/6] Conformité du formatage (`dotnet format`).
    - [3/6] Initialisation SonarScanner.
    - [4/6] Compilation Release sans incrémentation avec avertissements traités en erreurs (`-warnaserror`).
-   - [5/6] Exécution de 100 % des tests unitaires et d'architecture avec couverture OpenCover.
+   - [5/6] Exécution de 100 % des tests unitaires, d'architecture et E2E Playwright (mode headless) avec couverture OpenCover.
    - [6/6] Téléversement SonarQube et attente du Quality Gate (`PASSED`).
