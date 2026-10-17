@@ -10,7 +10,14 @@ public class FileCopierTests
 {
     [Theory]
     [InlineData(500, 64 * 1024)]
-    [InlineData(10 * 1024 * 1024, 1024 * 1024)]
+    [InlineData(1024 * 1024 + 1, 128 * 1024)]
+    [InlineData(2 * 1024 * 1024 + 1, 256 * 1024)]
+    [InlineData(4 * 1024 * 1024 + 1, 512 * 1024)]
+    [InlineData(8 * 1024 * 1024 + 1, 1024 * 1024)]
+    [InlineData(16 * 1024 * 1024 + 1, 2 * 1024 * 1024)]
+    [InlineData(32 * 1024 * 1024 + 1, 4 * 1024 * 1024)]
+    [InlineData(64 * 1024 * 1024 + 1, 8 * 1024 * 1024)]
+    [InlineData(128 * 1024 * 1024 + 1, 16 * 1024 * 1024)]
     [InlineData(600 * 1024 * 1024, 16 * 1024 * 1024)]
     public void CalculateOptimalBufferSize_ShouldReturnSensibleSizes(long fileSize, int expectedMinSize)
     {

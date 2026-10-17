@@ -110,4 +110,107 @@ public class SyncCatalogRepositoryTests
             }
         }
     }
+
+    [Fact]
+    public void BootstrapInitialCatalog_WhenCatalogAlreadyExists_ShouldReturnEarly()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"bootstrap_exist_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempRoot);
+
+        try
+        {
+            string catFile = Path.Combine(tempRoot, "backup_catalog.dat");
+            File.WriteAllText(catFile, "existing");
+
+            SyncCatalogRepository.BootstrapInitialCatalog(tempRoot, tempRoot);
+
+            File.ReadAllText(catFile).Should().Be("existing");
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void BootstrapInitialCatalog_WhenNoLegacyDirs_ShouldReturnEarly()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"bootstrap_nodirs_{Guid.NewGuid():N}");
+        var srcDir = Path.Combine(tempRoot, "Source");
+        var dstDir = Path.Combine(tempRoot, "Dest");
+        Directory.CreateDirectory(srcDir);
+        Directory.CreateDirectory(dstDir);
+
+        try
+        {
+            SyncCatalogRepository.BootstrapInitialCatalog(srcDir, dstDir);
+
+            File.Exists(Path.Combine(dstDir, "backup_catalog.dat")).Should().BeFalse();
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void BootstrapInitialCatalog_WhenSourceFileDoesNotExist_ShouldIndexBackupFile()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"bootstrap_nosrc_{Guid.NewGuid():N}");
+        var srcDir = Path.Combine(tempRoot, "Source");
+        var dstDir = Path.Combine(tempRoot, "Dest");
+        var backupDir = Path.Combine(dstDir, "Backup_20261016_1200");
+        Directory.CreateDirectory(srcDir);
+        Directory.CreateDirectory(backupDir);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(backupDir, "orphan.txt"), "orphan content");
+
+            SyncCatalogRepository.BootstrapInitialCatalog(srcDir, dstDir);
+
+            var catalog = SyncCatalogRepository.LoadCatalog(Path.Combine(dstDir, "backup_catalog.dat"));
+            catalog.Should().ContainKey("orphan.txt");
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void MigrateLegacyBackupNames_WhenDirDoesNotExist_ShouldReturnSilently()
+    {
+        var action = () => SyncCatalogRepository.MigrateLegacyBackupNames(@"C:\NonExistent_Migrate_Dir_12345");
+        action.Should().NotThrow();
+    }
+
+    [Fact]
+    public void LoadCatalog_WhenCorruptData_ShouldReturnEmptyDictionary()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"corrupt_{Guid.NewGuid():N}.dat");
+        try
+        {
+            File.WriteAllBytes(tempFile, [10, 0, 0, 0]); // Count = 10 but no following string data
+
+            var catalog = SyncCatalogRepository.LoadCatalog(tempFile);
+            catalog.Should().BeEmpty();
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
 }
