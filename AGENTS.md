@@ -93,6 +93,14 @@ Ce document consacre les standards de qualité logicielle, les protocoles d'outi
 - **Propagation du jeton** : Toute méthode asynchrone ou réalisant des opérations d'I/O doit systématiquement accepter un paramètre `CancellationToken cancellationToken = default` et le relayer à l'ensemble des méthodes descendantes.
 - **Respect de l'annulation** : Ne jamais ignorer un jeton d'annulation ni avaler une `OperationCanceledException` sans la relancer, sauf terminaison gracieuse explicitement documentée.
 
+### Règle 11 : Constructeurs primaires C# 12 pour l'injection
+- **Syntaxe idiomatique** : Utiliser systématiquement la syntaxe des constructeurs primaires (`primary constructors`) pour déclarer et injecter les dépendances des classes et services (ex. `public sealed class VolumeSnapshotProvider(ILogger logger, IFileSystem fileSystem) : IVolumeSnapshotProvider`).
+- **Élimination du boilerplate** : Ne pas déclarer de champs privés `private readonly` redondants lorsque le constructeur primaire suffit. Valider les préconditions si nécessaire dès l'initialisation.
+
+### Règle 12 : Documentation XML rigoureuse des contrats publics
+- **Contrats d'interface documentés** : Toute interface publique, méthode d'interface, énumération publique et propriété de contrat doit comporter une documentation XML (`///`) complète (`<summary>`, `<param>`, `<returns>`, `<exception>`).
+- **Zéro bruit sur le code interne** : Ne pas polluer les méthodes privées, locales ou évidentes avec des commentaires XML mécaniques. Réserver la documentation XML aux points d'entrée et abstractions du système.
+
 ---
 
 ## 3. Harnais d'Outillage Automatisé
