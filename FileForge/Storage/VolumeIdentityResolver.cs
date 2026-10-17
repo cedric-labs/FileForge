@@ -100,4 +100,45 @@ public static class VolumeIdentityResolver
 
         return uncPath;
     }
+
+    /// <summary>
+    /// Compare deux identifiants de disque ou de partage réseau en tolérant les variations d'écriture
+    /// (ex: "UNC:\serveur\partage" et "UNC:\\serveur\partage").
+    /// </summary>
+    public static bool AreMatchingDiskIds(string? actual, string? expected)
+    {
+        if (string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (actual is null || expected is null)
+        {
+            return false;
+        }
+
+        return string.Equals(NormalizeDiskId(actual), NormalizeDiskId(expected), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Normalise la forme canonique d'un identifiant de disque.
+    /// Pour les partages réseau UNC, harmonise le préfixe vers la syntaxe "UNC:\\serveur\partage".
+    /// </summary>
+    public static string NormalizeDiskId(string diskId)
+    {
+        if (string.IsNullOrWhiteSpace(diskId))
+        {
+            return string.Empty;
+        }
+
+        if (diskId.StartsWith("UNC:", StringComparison.OrdinalIgnoreCase))
+        {
+            string uncBody = diskId["UNC:".Length..]
+                .Replace('/', '\\')
+                .TrimStart('\\');
+            return $"UNC:\\\\{uncBody}";
+        }
+
+        return diskId;
+    }
 }
