@@ -227,6 +227,183 @@ public static class FileCopier
     }
 
     /// <summary>
+    /// Calcule l'empreinte de hachage hexadécimale d'un fichier physique.
+    /// </summary>
+    /// <param name="filePath">Chemin d'accès au fichier.</param>
+    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
+    /// <returns>Empreinte hexadécimale en minuscules.</returns>
+    public static string ComputeFileHash(string filePath, HashAlgorithmName? algorithm = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        return ComputeHash(stream, algorithm);
+    }
+
+    /// <summary>
+    /// Calcule de manière asynchrone l'empreinte de hachage hexadécimale d'un fichier physique.
+    /// </summary>
+    /// <param name="filePath">Chemin d'accès au fichier.</param>
+    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
+    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
+    /// <returns>Empreinte hexadécimale en minuscules.</returns>
+    public static async Task<string> ComputeFileHashAsync(
+        string filePath,
+        HashAlgorithmName? algorithm = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        return await ComputeHashAsync(stream, algorithm, cancellationToken);
+    }
+
+    /// <summary>
+    /// Calcule l'empreinte de hachage hexadécimale à partir d'un flux de données.
+    /// </summary>
+    /// <param name="stream">Flux source à hacher.</param>
+    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
+    /// <returns>Empreinte hexadécimale en minuscules.</returns>
+    public static string ComputeHash(Stream stream, HashAlgorithmName? algorithm = null)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+
+        using var hasher = CreateHashAlgorithm(algorithm ?? HashAlgorithmName.SHA256);
+        var hashBytes = hasher.ComputeHash(stream);
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// Calcule de manière asynchrone l'empreinte de hachage hexadécimale à partir d'un flux de données.
+    /// </summary>
+    /// <param name="stream">Flux source à hacher.</param>
+    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
+    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
+    /// <returns>Empreinte hexadécimale en minuscules.</returns>
+    public static async Task<string> ComputeHashAsync(
+        Stream stream,
+        HashAlgorithmName? algorithm = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+
+        using var hasher = CreateHashAlgorithm(algorithm ?? HashAlgorithmName.SHA256);
+        var hashBytes = await hasher.ComputeHashAsync(stream, cancellationToken);
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// Vérifie si l'empreinte de hachage d'un fichier correspond à la valeur hexadécimale attendue.
+    /// </summary>
+    /// <param name="filePath">Chemin du fichier à vérifier.</param>
+    /// <param name="expectedHashHex">Empreinte hexadécimale attendue (insensible à la casse).</param>
+    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
+    /// <returns>True si les empreintes correspondent rigoureusement, sinon false.</returns>
+    public static bool VerifyFileHash(string filePath, string expectedHashHex, HashAlgorithmName? algorithm = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedHashHex);
+
+        var actualHash = ComputeFileHash(filePath, algorithm);
+        return string.Equals(actualHash, expectedHashHex.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Lit de manière non bloquante jusqu'à un nombre donné d'octets au tout début d'un fichier physique.
+    /// </summary>
+    /// <param name="filePath">Chemin d'accès au fichier.</param>
+    /// <param name="byteCount">Nombre d'octets à lire.</param>
+    /// <returns>Tableau d'octets lus (de longueur inférieure ou égale à byteCount).</returns>
+    public static byte[] ReadFileHeader(string filePath, int byteCount)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteCount);
+
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"Le fichier spécifié est introuvable : {filePath}", filePath);
+        }
+
+        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var buffer = new byte[Math.Min(stream.Length, byteCount)];
+        int bytesRead = stream.Read(buffer, 0, buffer.Length);
+        if (bytesRead < buffer.Length)
+        {
+            Array.Resize(ref buffer, bytesRead);
+        }
+        return buffer;
+    }
+
+    /// <summary>
+    /// Lit de manière asynchrone et non bloquante jusqu'à un nombre donné d'octets au tout début d'un fichier physique.
+    /// </summary>
+    /// <param name="filePath">Chemin d'accès au fichier.</param>
+    /// <param name="byteCount">Nombre d'octets à lire.</param>
+    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
+    /// <returns>Tableau d'octets lus (de longueur inférieure ou égale à byteCount).</returns>
+    public static async Task<byte[]> ReadFileHeaderAsync(string filePath, int byteCount, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteCount);
+
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"Le fichier spécifié est introuvable : {filePath}", filePath);
+        }
+
+        await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var buffer = new byte[Math.Min(stream.Length, byteCount)];
+        int bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
+        if (bytesRead < buffer.Length)
+        {
+            Array.Resize(ref buffer, bytesRead);
+        }
+        return buffer;
+    }
+
+    /// <summary>
+    /// Vérifie si un fichier physique débute par la séquence d'octets spécifiée.
+    /// </summary>
+    /// <param name="filePath">Chemin d'accès au fichier.</param>
+    /// <param name="expectedHeader">En-tête attendu sous forme d'octets.</param>
+    /// <returns>True si le fichier existe et commence par les octets attendus, sinon false.</returns>
+    public static bool MatchesFileHeader(string filePath, byte[] expectedHeader)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentNullException.ThrowIfNull(expectedHeader);
+
+        if (expectedHeader.Length == 0)
+        {
+            return true;
+        }
+
+        if (!File.Exists(filePath))
+        {
+            return false;
+        }
+
+        try
+        {
+            var actual = ReadFileHeader(filePath, expectedHeader.Length);
+            return actual.SequenceEqual(expectedHeader);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static HashAlgorithm CreateHashAlgorithm(HashAlgorithmName algorithm)
+    {
+        if (algorithm == HashAlgorithmName.SHA256) return SHA256.Create();
+        if (algorithm == HashAlgorithmName.SHA512) return SHA512.Create();
+        if (algorithm == HashAlgorithmName.SHA384) return SHA384.Create();
+        if (algorithm == HashAlgorithmName.SHA1) return SHA1.Create();
+        if (algorithm == HashAlgorithmName.MD5) return MD5.Create();
+        throw new NotSupportedException($"L'algorithme de hachage '{algorithm.Name}' n'est pas pris en charge.");
+    }
+
+    /// <summary>
     /// Calcule la taille optimale de tampon de copie en fonction de la taille globale du fichier source.
     /// </summary>
     /// <param name="fileSize">Taille du fichier en octets.</param>

@@ -15,7 +15,12 @@ FileForge est la bibliothèque partagée d'ingénierie système pour Windows dé
 ### 1. `FileForge.IO` — Transfert & Catalogue
 - **`FileCopier`** (statique) :
   - `CopyFile(source, destination, bufferSize, displayProgress, verifyHash, cancellationToken)` : Copie par flux direct avec gestion coopérative de l'annulation et vérification optionnelle SHA-256.
-  - `CompareFileHashes(file1, file2)` : Vérification d'intégrité par hachage cryptographique SHA-256.
+  - `CompareFileHashes(file1, file2)` : Vérification d'intégrité par hachage cryptographique SHA-256 entre deux fichiers.
+  - `ComputeFileHash(filePath, algorithm)` / `ComputeFileHashAsync(...)` : Calcul synchrone et asynchrone de l'empreinte hexadécimale d'un fichier physique (SHA-256 par défaut).
+  - `ComputeHash(stream, algorithm)` / `ComputeHashAsync(...)` : Calcul de l'empreinte hexadécimale à partir d'un flux source `Stream`.
+  - `VerifyFileHash(filePath, expectedHashHex, algorithm)` : Vérification d'intégrité d'un fichier par rapport à une empreinte hexadécimale attendue.
+  - `ReadFileHeader(filePath, byteCount)` / `ReadFileHeaderAsync(...)` : Lecture non bloquante des $N$ premiers octets d'un fichier pour détection d'en-tête et signatures magiques.
+  - `MatchesFileHeader(filePath, expectedHeader)` : Validation de la présence d'une signature binaire au début d'un fichier physique.
   - `CalculateOptimalBufferSize(fileSize)` : Calcul dynamique de la taille de buffer (de 64 Ko à 16 Mo) selon le volume du fichier.
   - `CopyMetadata(source, destination, includeAcl)` : Préservation des dates de création, modification, accès et attributs.
   - `CopyAcl(source, destination)` : Réplication des listes de contrôle d'accès de sécurité Windows.

@@ -217,4 +217,135 @@ public class FileCopierTests
             }
         }
     }
+
+    [Fact]
+    public void ComputeFileHash_WhenFileExists_ReturnsExpectedSha256Hex()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"hash_test_{Guid.NewGuid():N}.txt");
+        try
+        {
+            File.WriteAllText(tempFile, "FileForgeHashTest");
+            var hash = FileCopier.ComputeFileHash(tempFile);
+
+            hash.Should().NotBeNullOrWhiteSpace();
+            hash.Length.Should().Be(64); // SHA-256 produit 64 caractères hexadécimaux
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task ComputeFileHashAsync_WhenFileExists_ReturnsSameAsSync()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"hash_async_test_{Guid.NewGuid():N}.txt");
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "FileForgeHashAsyncTest");
+            var syncHash = FileCopier.ComputeFileHash(tempFile);
+            var asyncHash = await FileCopier.ComputeFileHashAsync(tempFile);
+
+            asyncHash.Should().Be(syncHash);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public void VerifyFileHash_WhenHashMatches_ReturnsTrue()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"verify_hash_{Guid.NewGuid():N}.txt");
+        try
+        {
+            File.WriteAllText(tempFile, "VerifyMe");
+            var actualHash = FileCopier.ComputeFileHash(tempFile);
+
+            bool matches = FileCopier.VerifyFileHash(tempFile, actualHash);
+            matches.Should().BeTrue();
+
+            bool matchesUpper = FileCopier.VerifyFileHash(tempFile, actualHash.ToUpperInvariant());
+            matchesUpper.Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public void VerifyFileHash_WhenHashDiffers_ReturnsFalse()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"verify_diff_{Guid.NewGuid():N}.txt");
+        try
+        {
+            File.WriteAllText(tempFile, "VerifyMismatch");
+            bool matches = FileCopier.VerifyFileHash(tempFile, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+            matches.Should().BeFalse();
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public void ReadFileHeader_WhenFileExists_ReturnsRequestedBytes()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"header_test_{Guid.NewGuid():N}.dat");
+        try
+        {
+            byte[] rawBytes = [0x53, 0x51, 0x4C, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6F, 0x72, 0x6D, 0x61, 0x74, 0x20, 0x33, 0x00];
+            File.WriteAllBytes(tempFile, rawBytes);
+
+            var header = FileCopier.ReadFileHeader(tempFile, 16);
+            header.Should().Equal(rawBytes);
+
+            var shortHeader = FileCopier.ReadFileHeader(tempFile, 6);
+            shortHeader.Should().Equal(rawBytes[..6]);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task ReadFileHeaderAsync_WhenFileExists_ReturnsExactBytes()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"header_async_{Guid.NewGuid():N}.dat");
+        try
+        {
+            byte[] rawBytes = [0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02];
+            await File.WriteAllBytesAsync(tempFile, rawBytes);
+
+            var header = await FileCopier.ReadFileHeaderAsync(tempFile, 4);
+            header.Should().Equal(rawBytes[..4]);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public void MatchesFileHeader_WhenHeaderMatches_ReturnsTrue()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"match_hdr_{Guid.NewGuid():N}.dat");
+        try
+        {
+            byte[] rawBytes = [0x53, 0x51, 0x4C, 0x69, 0x74, 0x65];
+            File.WriteAllBytes(tempFile, rawBytes);
+
+            FileCopier.MatchesFileHeader(tempFile, [0x53, 0x51, 0x4C]).Should().BeTrue();
+            FileCopier.MatchesFileHeader(tempFile, [0x00, 0x00]).Should().BeFalse();
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
 }
+
