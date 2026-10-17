@@ -166,7 +166,7 @@ public class ConsoleDashboardTests
 
         string box = dashboard.BuildDashboardString(80);
         Assert.Contains("[ 3 / 4 ]", box);
-        Assert.Contains("(2 restants, 1 ignorés)", box);
+        Assert.Contains("(2 restants, 1 en échec)", box);
     }
 
     [Fact]

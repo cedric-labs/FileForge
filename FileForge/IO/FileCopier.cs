@@ -49,7 +49,7 @@ public static class FileCopier
             long fileSize = new FileInfo(sourcePath).Length;
             long totalBytesRead = 0;
 
-            using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             using (var destStream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
                 var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
@@ -195,8 +195,8 @@ public static class FileCopier
     public static bool CompareFileHashes(string path1, string path2)
     {
         using var sha = SHA256.Create();
-        using var stream1 = new FileStream(path1, FileMode.Open, FileAccess.Read);
-        using var stream2 = new FileStream(path2, FileMode.Open, FileAccess.Read);
+        using var stream1 = new FileStream(path1, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var stream2 = new FileStream(path2, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         var hash1 = sha.ComputeHash(stream1);
         var hash2 = sha.ComputeHash(stream2);
         return hash1.SequenceEqual(hash2);

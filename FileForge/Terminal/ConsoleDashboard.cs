@@ -179,7 +179,7 @@ public sealed class ConsoleDashboard : IDisposable
                 ("Fichier : ", ConsoleColor.Cyan),
                 (fileCounter, ConsoleColor.White),
                 ($"({remainingFiles} restants, ", ConsoleColor.Yellow),
-                ($"{_failedFiles} ignorés)", ConsoleColor.Red));
+                ($"{_failedFiles} en échec)", ConsoleColor.Red));
         }
         else
         {
@@ -375,7 +375,7 @@ public sealed class ConsoleDashboard : IDisposable
         int remainingFiles = Math.Max(0, _totalFiles - processedFiles);
         int currentFileNum = Math.Min(_totalFiles, processedFiles + 1);
         string remainingText = _failedFiles > 0
-            ? $"({remainingFiles} restants, {_failedFiles} ignorés)"
+            ? $"({remainingFiles} restants, {_failedFiles} en échec)"
             : $"({remainingFiles} restants)";
         string currentFileIndex = $"Fichier : [ {currentFileNum} / {_totalFiles} ] {remainingText}";
         sb.AppendLine(CultureInfo.InvariantCulture, $"{indent}║ {PadOrTruncate(currentFileIndex, contentWidth)} ║");
