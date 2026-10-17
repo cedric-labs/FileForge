@@ -51,6 +51,13 @@ public class DirectorySynchronizerTests
         {
             File.WriteAllText(Path.Combine(srcDir, "doc.txt"), "Contenu source");
             File.WriteAllText(Path.Combine(dstDir, "obsolete.txt"), "À supprimer");
+            var obsoleteEmpty = Path.Combine(dstDir, "ObsoleteEmptyDir");
+            Directory.CreateDirectory(obsoleteEmpty);
+
+            var srcSubDir = Path.Combine(srcDir, "NewSubDir");
+            Directory.CreateDirectory(srcSubDir);
+            File.WriteAllText(Path.Combine(srcSubDir, "subdoc.txt"), "Contenu sous-dossier");
+
             var excludedSub = Path.Combine(dstDir, "ExcludedDir");
             Directory.CreateDirectory(excludedSub);
             File.WriteAllText(Path.Combine(excludedSub, "sub.txt"), "exclu");
@@ -71,6 +78,9 @@ public class DirectorySynchronizerTests
             File.Exists(Path.Combine(dstDir, "doc.txt")).Should().BeTrue();
             File.ReadAllText(Path.Combine(dstDir, "doc.txt")).Should().Be("Contenu source");
             File.Exists(Path.Combine(dstDir, "obsolete.txt")).Should().BeFalse();
+            Directory.Exists(obsoleteEmpty).Should().BeFalse();
+            Directory.Exists(Path.Combine(dstDir, "NewSubDir")).Should().BeTrue();
+            File.Exists(Path.Combine(dstDir, "NewSubDir", "subdoc.txt")).Should().BeTrue();
             Directory.Exists(excludedSub).Should().BeFalse();
 
             // Deuxième passage sans changement

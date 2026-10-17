@@ -30,4 +30,41 @@ public class HardwarePerformanceAdvisorTests
 
         memory.Should().BeGreaterThan(0);
     }
+
+    [Theory]
+    [InlineData(@"\\server\share\sub")]
+    [InlineData(@"Z:\NonExistentDrive\Data")]
+    public void IsSsdDrive_WhenUncOrNonExistentDrive_ShouldReturnFalse(string path)
+    {
+        bool isSsd = HardwarePerformanceAdvisor.IsSsdDrive(path);
+
+        isSsd.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CalculateOptimalParallelism_WhenOneSideIsUnc_ShouldReturnOne()
+    {
+        int parallelism = HardwarePerformanceAdvisor.CalculateOptimalParallelism(@"\\server\share", @"C:\Local");
+
+        parallelism.Should().Be(1);
+    }
+
+    [Fact]
+    public void AdvisorLog_EventSubscription_ShouldWork()
+    {
+        bool logged = false;
+        EventHandler<FileForge.Diagnostics.LogMessageEventArgs> handler = (_, _) => logged = true;
+
+        HardwarePerformanceAdvisor.AdvisorLog += handler;
+        try
+        {
+            HardwarePerformanceAdvisor.IsSsdDrive(@"C:\ValidPath");
+        }
+        finally
+        {
+            HardwarePerformanceAdvisor.AdvisorLog -= handler;
+        }
+
+        logged.Should().BeFalse(); // pas d'erreur sur chemin valide
+    }
 }

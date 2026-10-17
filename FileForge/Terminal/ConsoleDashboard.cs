@@ -141,7 +141,7 @@ public sealed class ConsoleDashboard : IDisposable
         }
     }
 
-    private void DrawNortonBox(int leftMargin, int boxWidth, int windowWidth)
+    internal void DrawNortonBox(int leftMargin, int boxWidth, int windowWidth)
     {
         int contentWidth = Math.Max(20, boxWidth - 4);
         int frameBorderWidth = contentWidth + 2;

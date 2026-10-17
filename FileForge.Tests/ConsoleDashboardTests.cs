@@ -1,5 +1,6 @@
 using System;
 using FileForge.Terminal;
+using FluentAssertions;
 using Xunit;
 
 namespace FileForge.Tests;
@@ -166,5 +167,42 @@ public class ConsoleDashboardTests
         string box = dashboard.BuildDashboardString(80);
         Assert.Contains("[ 3 / 4 ]", box);
         Assert.Contains("(2 restants, 1 ignorés)", box);
+    }
+
+    [Fact]
+    public void DrawNortonBox_ShouldRenderDirectlyWithoutThrowing()
+    {
+        using var dashboard = new ConsoleDashboard(
+            taskName: "Render Test",
+            sourceRoot: @"D:\Source\Directory",
+            destRoot: @"E:\Dest\Directory",
+            totalFiles: 3,
+            totalBytes: 3000);
+
+        var act1 = () => dashboard.DrawNortonBox(leftMargin: 2, boxWidth: 70, windowWidth: 80);
+        act1.Should().NotThrow();
+
+        dashboard.UpdateCurrentFile("active_file.txt", 500, 1000);
+        var act2 = () => dashboard.DrawNortonBox(leftMargin: 0, boxWidth: 60, windowWidth: 60);
+        act2.Should().NotThrow();
+
+        dashboard.CompleteFile(1000);
+        dashboard.FailFile(1000);
+        var act3 = () => dashboard.DrawNortonBox(leftMargin: 5, boxWidth: 80, windowWidth: 100);
+        act3.Should().NotThrow();
+    }
+
+    [Fact]
+    public void DrawNortonBox_WithZeroTotals_ShouldRenderGracefully()
+    {
+        using var dashboard = new ConsoleDashboard(
+            taskName: "Zero Test",
+            sourceRoot: @"D:\EmptySrc",
+            destRoot: @"E:\EmptyDst",
+            totalFiles: 0,
+            totalBytes: 0);
+
+        var act = () => dashboard.DrawNortonBox(leftMargin: 0, boxWidth: 60, windowWidth: 60);
+        act.Should().NotThrow();
     }
 }

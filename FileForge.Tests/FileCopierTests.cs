@@ -49,6 +49,7 @@ public class FileCopierTests
         try
         {
             File.WriteAllText(srcFile, "Contenu de test pour la copie sécurisée.");
+            File.WriteAllText(dstFile, "Ancien contenu à écraser");
 
             bool success = FileCopier.CopyFile(srcFile, dstFile, verifyHash: true);
 
