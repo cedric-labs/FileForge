@@ -72,6 +72,9 @@ public class DirectorySynchronizerTests
             File.ReadAllText(Path.Combine(dstDir, "doc.txt")).Should().Be("Contenu source");
             File.Exists(Path.Combine(dstDir, "obsolete.txt")).Should().BeFalse();
             Directory.Exists(excludedSub).Should().BeFalse();
+
+            // Deuxième passage sans changement
+            DirectorySynchronizer.CloneDirectory(srcDir, dstDir, syncOptions);
         }
         finally
         {
@@ -115,6 +118,9 @@ public class DirectorySynchronizerTests
             var catalogPath = Path.Combine(dstDir, "backup_catalog.dat");
             File.Exists(catalogPath).Should().BeTrue();
             Directory.Exists(staleTempPath).Should().BeFalse();
+
+            // Deuxième passage incrémental sans changement
+            DirectorySynchronizer.IncrementalBackup(srcDir, dstDir, syncOptions);
         }
         finally
         {
