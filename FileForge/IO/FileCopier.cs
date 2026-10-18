@@ -398,8 +398,6 @@ public static class FileCopier
         if (algorithm == HashAlgorithmName.SHA256) return SHA256.Create();
         if (algorithm == HashAlgorithmName.SHA512) return SHA512.Create();
         if (algorithm == HashAlgorithmName.SHA384) return SHA384.Create();
-        if (algorithm == HashAlgorithmName.SHA1) return SHA1.Create();
-        if (algorithm == HashAlgorithmName.MD5) return MD5.Create();
         throw new NotSupportedException($"L'algorithme de hachage '{algorithm.Name}' n'est pas pris en charge.");
     }
 

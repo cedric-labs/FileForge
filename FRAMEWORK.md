@@ -30,6 +30,9 @@ FileForge est la bibliothèque partagée d'ingénierie système pour Windows dé
   - `MigrateLegacyBackupNames(destinationRoot)` : Renomme les dossiers d'anciennes versions en `Backup_YYYYMMDD_HHMM`.
   - `BootstrapInitialCatalog(sourcePath, destinationPath)` : Initialise un index rétroactif à partir d'une sauvegarde existante.
 - **`FileOperationProgress`** : Modèle de progression d'opération de fichier (pourcentage, octets transférés, état d'achèvement).
+- **`ProtectedFileStore`** :
+  - `ReadSecret()` / `WriteSecret(secret)` / `ClearSecret()` : Persistance locale sécurisée de secrets sur fichier chiffré (DPAPI `ProtectedData` en portée `CurrentUser` sous Windows, AES-256 avec IV préfixé en repli).
+  - `EncryptAesWithEntropy(plainBytes, entropy)` / `DecryptAesWithEntropy(cipherData, entropy)` : Primitives de chiffrement symétrique AES-256 liées à une entropie applicative.
 
 ### 2. `FileForge.Sync` — Moteur de Synchronisation
 - **`DirectorySynchronizer`** (statique) :
