@@ -15,4 +15,8 @@
     <InternalsVisibleTo Include="FileForge.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\FileForge.Core\FileForge.Core.csproj" />
+  </ItemGroup>
+
 </Project>
