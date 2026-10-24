@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>FileForge.Core</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>curvecoder</Authors>
     <Company>curvecoder</Company>
     <Description>Thread-safe streaming I/O engine and RFC 4180 delimited file writer.</Description>
