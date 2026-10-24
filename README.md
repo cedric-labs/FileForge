@@ -9,18 +9,18 @@ High-performance .NET system engineering library for thread-safe streaming I/O, 
 
 ## Key Capabilities
 
-### 1. High-Performance Streaming I/O & Cryptography (FileForge.IO)
-* **FileCopier**: Stream-based direct copy engine supporting cooperative cancellation (CancellationToken), dynamic buffer size calculation (64 KB to 16 MB), metadata/ACL preservation, and cryptographic integrity verification.
-* **PersistentDelimitedFileWriter**: Thread-safe delimited file writer (CSV, TSV) with non-blocking shared access (FileShare.ReadWrite), dynamic deduplication cache rehydration, and RFC 4180 compliance (automatic escaping of commas, quotes, and line breaks).
-* **ProtectedFileStore**: Secure local secret storage using Windows DPAPI (ProtectedData under CurrentUser) with AES-256 fallback and application-specific entropy.
-* **Cryptographic Hashing**: Synchronous and asynchronous SHA-256 / SHA-512 hashing for disk files, memory streams, and magic byte file header inspections.
+### 1. High-Performance Streaming I/O & Cryptography (`FileForge.IO`)
+* **`FileCopier`**: Stream-based direct copy engine supporting cooperative cancellation (`CancellationToken`), dynamic buffer size calculation (64 KB to 16 MB), metadata and ACL preservation, and cryptographic integrity verification.
+* **`PersistentDelimitedFileWriter`**: Thread-safe delimited file writer (CSV, TSV) with non-blocking shared access (`FileShare.ReadWrite`), dynamic deduplication cache rehydration, and RFC 4180 compliance (automatic escaping of commas, quotes, and line breaks).
+* **`ProtectedFileStore`**: Secure local secret storage using Windows DPAPI (`ProtectedData` under `CurrentUser`) with AES-256 fallback and application-specific entropy.
+* **Cryptographic Hashing**: Synchronous and asynchronous SHA-256 and SHA-512 hashing for disk files, memory streams, and magic byte file header inspections.
 
-### 2. Physical & Network Storage Resolution (FileForge.Storage)
-* **VolumeIdentityResolver**: Extracts and normalizes Windows physical volume serial numbers (VOL:XXXXXXXX) and network root shares (UNC:\\server\share), enabling reliable disk identification across drive letter changes.
-* **HardwarePerformanceAdvisor**: Queries disk hardware characteristics (SSD vs. HDD magnetic media), calculates optimal copy thread parallelism based on CPU core counts and storage bus throughput, and evaluates available physical RAM.
+### 2. Physical & Network Storage Resolution (`FileForge.Storage`)
+* **`VolumeIdentityResolver`**: Extracts and normalizes Windows physical volume serial numbers (`VOL:XXXXXXXX`) and network root shares (`UNC:\\server\share`), enabling reliable disk identification across drive letter changes.
+* **`HardwarePerformanceAdvisor`**: Queries disk hardware characteristics (SSD vs. HDD magnetic media), calculates optimal copy thread parallelism based on CPU core counts and storage bus throughput, and evaluates available physical RAM.
 
-### 3. Directory Synchronization Engine (FileForge.Sync)
-* **DirectorySynchronizer**: Exact 1:1 directory mirroring with orphan deletion, incremental catalog-driven backups, and high-speed parallel file discovery.
+### 3. Directory Synchronization Engine (`FileForge.Sync`)
+* **`DirectorySynchronizer`**: Exact 1:1 directory mirroring with orphan deletion, incremental catalog-driven backups, and high-speed parallel file discovery.
 
 ---
 
@@ -28,15 +28,15 @@ High-performance .NET system engineering library for thread-safe streaming I/O, 
 
 Add the package via the .NET CLI:
 
-`powershell
+```powershell
 dotnet add package FileForge.Core --version 1.0.2
-`
+```
 
 ---
 
 ## Code Example
 
-`csharp
+```csharp
 using FileForge.Core.IO;
 
 // Thread-safe RFC 4180 CSV writer with non-blocking shared access
@@ -45,7 +45,7 @@ await writer.InitializeAsync();
 
 // Append record safely across concurrent threads
 await writer.AppendLineAsync(["2026-10-24T12:00:00Z", "10.10.1.5", "443", "nginx", "TCP"]);
-`
+```
 
 ---
 
