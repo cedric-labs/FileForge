@@ -1,9 +1,21 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>FileForge.Core</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>curvecoder</Authors>
+    <Company>curvecoder</Company>
+    <Description>Thread-safe streaming I/O engine and RFC 4180 delimited file writer.</Description>
+    <RepositoryUrl>https://github.com/curvecoder/NetFlowAudit</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\FRAMEWORK.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
 
 </Project>
