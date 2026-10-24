@@ -1,83 +1,54 @@
-# FileForge — Spécification & Documentation IA du Framework
+# FileForge
 
-Ce document est le manifeste technique destiné à l'agent IA et aux développeurs. Il récapitule l'ensemble des capacités, composants et contrats publics exposés par **FileForge**.
+High-performance .NET system engineering library for thread-safe streaming I/O, RFC 4180 delimited file writing, volume resolution, hardware performance detection, and directory synchronization.
 
----
-
-## 🎯 Périmètre & Responsabilité
-
-FileForge est la bibliothèque partagée d'ingénierie système pour Windows dédiée aux **opérations d'E/S haute performance**, à la **synchronisation de répertoires**, à la **résolution de volumes physiques/réseau** et au **rendu de tableaux de bord en mode console**.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Framework](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
 
 ---
 
-## 🧱 Composants & Capacités Détaillées
+## Key Capabilities
 
-### 1. `FileForge.IO` — Transfert & Catalogue
-- **`FileCopier`** (statique) :
-  - `CopyFile(source, destination, bufferSize, displayProgress, verifyHash, cancellationToken)` : Copie par flux direct avec gestion coopérative de l'annulation et vérification optionnelle SHA-256.
-  - `CompareFileHashes(file1, file2)` : Vérification d'intégrité par hachage cryptographique SHA-256 entre deux fichiers.
-  - `ComputeFileHash(filePath, algorithm)` / `ComputeFileHashAsync(...)` : Calcul synchrone et asynchrone de l'empreinte hexadécimale d'un fichier physique (SHA-256 par défaut).
-  - `ComputeHash(stream, algorithm)` / `ComputeHashAsync(...)` : Calcul de l'empreinte hexadécimale à partir d'un flux source `Stream`.
-  - `VerifyFileHash(filePath, expectedHashHex, algorithm)` : Vérification d'intégrité d'un fichier par rapport à une empreinte hexadécimale attendue.
-  - `ReadFileHeader(filePath, byteCount)` / `ReadFileHeaderAsync(...)` : Lecture non bloquante des $N$ premiers octets d'un fichier pour détection d'en-tête et signatures magiques.
-  - `MatchesFileHeader(filePath, expectedHeader)` : Validation de la présence d'une signature binaire au début d'un fichier physique.
-  - `CalculateOptimalBufferSize(fileSize)` : Calcul dynamique de la taille de buffer (de 64 Ko à 16 Mo) selon le volume du fichier.
-  - `CopyMetadata(source, destination, includeAcl)` : Préservation des dates de création, modification, accès et attributs.
-  - `CopyAcl(source, destination)` : Réplication des listes de contrôle d'accès de sécurité Windows.
-- **`SyncCatalogRepository`** (statique) :
-  - `LoadCatalog(catalogFilePath)` : Charge l'index binaire des fichiers sauvegardés en `Dictionary<string, string>`.
-  - `SaveCatalog(catalog, catalogFilePath)` : Enregistre de façon atomique le catalogue de sauvegarde.
-  - `MigrateLegacyBackupNames(destinationRoot)` : Renomme les dossiers d'anciennes versions en `Backup_YYYYMMDD_HHMM`.
-  - `BootstrapInitialCatalog(sourcePath, destinationPath)` : Initialise un index rétroactif à partir d'une sauvegarde existante.
-- **`FileOperationProgress`** : Modèle de progression d'opération de fichier (pourcentage, octets transférés, état d'achèvement).
-- **`PersistentDelimitedFileWriter`** :
-  - `InitializeAsync(cancellationToken)` : Initialise un fichier délimité (CSV, TSV) en mode partagé non-bloquant (`FileShare.ReadWrite`), écrit la ligne d'en-tête si le fichier est nouvellement créé, ou positionne le curseur en fin de flux.
-  - `ReadExistingLinesAsync(cancellationToken)` : Lit de manière asynchrone l'ensemble des enregistrements préexistants (hors en-tête) pour hydrater les registres de dédoublonnage au démarrage.
-  - `AppendLineAsync(line, cancellationToken)` : Ajoute une ligne au fil de l'eau avec `AutoFlush` et synchronisation thread-safe (`SemaphoreSlim`).
-  - `EscapeField(value, delimiter)` : Échappement conforme RFC 4180 (prise en charge des virgules, retours à la ligne et guillemets doublés).
-- **`ProtectedFileStore`** :
-  - `ReadSecret()` / `WriteSecret(secret)` / `ClearSecret()` : Persistance locale sécurisée de secrets sur fichier chiffré (DPAPI `ProtectedData` en portée `CurrentUser` sous Windows, AES-256 avec IV préfixé en repli).
-  - `EncryptAesWithEntropy(plainBytes, entropy)` / `DecryptAesWithEntropy(cipherData, entropy)` : Primitives de chiffrement symétrique AES-256 liées à une entropie applicative.
+### 1. High-Performance Streaming I/O & Cryptography (FileForge.IO)
+* **FileCopier**: Stream-based direct copy engine supporting cooperative cancellation (CancellationToken), dynamic buffer size calculation (64 KB to 16 MB), metadata/ACL preservation, and cryptographic integrity verification.
+* **PersistentDelimitedFileWriter**: Thread-safe delimited file writer (CSV, TSV) with non-blocking shared access (FileShare.ReadWrite), dynamic deduplication cache rehydration, and RFC 4180 compliance (automatic escaping of commas, quotes, and line breaks).
+* **ProtectedFileStore**: Secure local secret storage using Windows DPAPI (ProtectedData under CurrentUser) with AES-256 fallback and application-specific entropy.
+* **Cryptographic Hashing**: Synchronous and asynchronous SHA-256 / SHA-512 hashing for disk files, memory streams, and magic byte file header inspections.
 
-### 2. `FileForge.Sync` — Moteur de Synchronisation
-- **`DirectorySynchronizer`** (statique) :
-  - `CloneDirectory(source, destination, options, cancellationToken)` : Synchronisation miroir exacte 1:1 avec suppression des fichiers orphelins cibles.
-  - `IncrementalBackup(source, destination, options, cancellationToken)` : Sauvegarde incrémentale créant un dossier daté `Backup_...` basé sur le catalogue.
-  - `ParallelEnumerateFiles(directory, maxParallelism, cancellationToken)` : Découverte parallèle haute vitesse des fichiers et sous-répertoires.
-  - `ForceDeleteDirectory(path)` : Suppression récursive robuste supprimant préalablement les attributs ReadOnly sur les fichiers et dossiers protégés.
-- **`DirectorySyncOptions` & `DirectoryCloneOptions`** :
-  - Gestion du parallélisme distinct pour la source, la destination et les transferts.
-  - Chemins et masques exclus (`ExcludedPaths`, `ExcludedFilters`, `IncludedFilters`).
+### 2. Physical & Network Storage Resolution (FileForge.Storage)
+* **VolumeIdentityResolver**: Extracts and normalizes Windows physical volume serial numbers (VOL:XXXXXXXX) and network root shares (UNC:\\server\share), enabling reliable disk identification across drive letter changes.
+* **HardwarePerformanceAdvisor**: Queries disk hardware characteristics (SSD vs. HDD magnetic media), calculates optimal copy thread parallelism based on CPU core counts and storage bus throughput, and evaluates available physical RAM.
 
-### 3. `FileForge.Storage` — Disques & Recommandations Matérielles
-- **`VolumeIdentityResolver`** (statique) :
-  - `GetDiskId(path)` : Extrait le numéro de série de volume Windows (`VOL:XXXXXXXX`) ou la racine réseau normalisée (`UNC:\\serveur\partage`).
-  - `AreMatchingDiskIds(diskId1, diskId2)` : Comparaison insensible aux variations de casse ou de barres obliques.
-  - `NormalizeDiskId(diskId)` : Harmonisation des formats de préfixes.
-- **`HardwarePerformanceAdvisor`** (statique) :
-  - `IsSsdDrive(path)` : Détecte si le lecteur sous-jacent est un SSD ou un disque magnétique traditionnel.
-  - `CalculateOptimalParallelism(source, dest)` : Calcule le nombre idéal de threads de copie selon le type de stockage (SSD vs HDD) et le nombre de cœurs CPU.
-  - `GetAvailableMemoryInGB()` : Interroge la mémoire vive physique disponible.
-
-### 4. `FileForge.Paths` — Gestion des Chemins
-- **`PathNormalizer`** (statique) :
-  - `NormalizeLongPath(path)` : Préfixe les chemins longs avec `\\?\` ou `\\?\UNC\` pour dépasser la limite Windows MAX_PATH (260 caractères).
-  - `RemoveLongPathPrefix(path)` : Supprime les préfixes techniques pour l'affichage utilisateur.
-
-### 5. `FileForge.Terminal` — Rendu Console Rétro
-- **`ConsoleDashboard`** :
-  - Affiche un cadre double bordure (style Norton Commander) rafraîchi en temps réel sans scintillement.
-  - Phases supportées : *Scanning* (inventaire), *UpToDate* (déjà à jour), *Copying* (transfert), *Completed* (terminé).
-  - Barre de progression textuelle `[██████████░░░░░░░░░░]`.
-  - Statistiques en temps réel : débit instantané, fichiers restants, temps écoulé / restant estimé.
+### 3. Directory Synchronization Engine (FileForge.Sync)
+* **DirectorySynchronizer**: Exact 1:1 directory mirroring with orphan deletion, incremental catalog-driven backups, and high-speed parallel file discovery.
 
 ---
 
-## 📋 Protocole de Maintenance par l'Agent IA
+## Installation
 
-Toute modification de FileForge doit respecter :
-1. **Rétrocompatibilité :** Conserver toutes les méthodes publiques existantes. Utiliser des surcharges ou des paramètres optionnels.
-2. **Qualité :** Zéro warning (`<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`), zéro pragma/suppress, `CancellationToken` systématique sur les I/O.
-3. **Tests :** Nommage `MethodeCible_Scenario_ResultatAttendu`.
-4. **Mise à jour :** Compléter immédiatement ce fichier `FRAMEWORK.md` en cas d'ajout d'une nouvelle capacité.
-5. **Validation :** Valider par `./verify.ps1` (Quality Gate: PASSED).
+Add the package via the .NET CLI:
+
+`powershell
+dotnet add package FileForge.Core --version 1.0.2
+`
+
+---
+
+## Code Example
+
+`csharp
+using FileForge.Core.IO;
+
+// Thread-safe RFC 4180 CSV writer with non-blocking shared access
+await using var writer = new PersistentDelimitedFileWriter("audit_log.csv", delimiter: ",");
+await writer.InitializeAsync();
+
+// Append record safely across concurrent threads
+await writer.AppendLineAsync(["2026-10-24T12:00:00Z", "10.10.1.5", "443", "nginx", "TCP"]);
+`
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
