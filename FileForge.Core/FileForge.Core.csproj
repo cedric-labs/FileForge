@@ -9,7 +9,7 @@
     <Authors>curvecoder</Authors>
     <Company>curvecoder</Company>
     <Description>Thread-safe streaming I/O engine and RFC 4180 delimited file writer.</Description>
-    <RepositoryUrl>https://github.com/curvecoder/NetFlowAudit</RepositoryUrl>
+    <RepositoryUrl>https://github.com/curvecoder/FileForge</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
