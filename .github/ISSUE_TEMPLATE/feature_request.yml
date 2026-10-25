@@ -1,0 +1,31 @@
+name: ðŸ’¡ Feature Request / API Proposal
+description: Propose an API enhancement, new capability, or performance improvement in FileForge
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing an enhancement to FileForge!
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation / Use Case
+      description: What problem are you trying to solve or what use case does this enable?
+    validations:
+      required: true
+  - type: textarea
+    id: api_proposal
+    attributes:
+      label: Proposed API / Solution
+      description: If applicable, sketch the proposed public API contracts, methods, or interfaces.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or workarounds.
+    validations:
+      required: false

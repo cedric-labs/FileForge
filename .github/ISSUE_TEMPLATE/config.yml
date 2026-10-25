@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ðŸ“– Framework Specification
+    url: https://github.com/curvecoder/FileForge/blob/main/FRAMEWORK.md
+    about: Read the framework documentation and contracts before filing.
