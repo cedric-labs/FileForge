@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
+using AwesomeAssertions;
 using FileForge.IO;
-using FluentAssertions;
 using Xunit;
 
 namespace FileForge.Tests;

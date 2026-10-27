@@ -1,6 +1,6 @@
 using System;
+using AwesomeAssertions;
 using FileForge.Storage;
-using FluentAssertions;
 using Xunit;
 
 namespace FileForge.Tests;
@@ -12,8 +12,8 @@ public class HardwarePerformanceAdvisorTests
     {
         int parallelism = HardwarePerformanceAdvisor.CalculateOptimalParallelism(@"C:\Source", @"D:\Destination");
 
-        parallelism.Should().BeGreaterOrEqualTo(1);
-        parallelism.Should().BeLessOrEqualTo(Environment.ProcessorCount);
+        parallelism.Should().BeGreaterThanOrEqualTo(1);
+        parallelism.Should().BeLessThanOrEqualTo(Environment.ProcessorCount);
     }
 
     [Fact]

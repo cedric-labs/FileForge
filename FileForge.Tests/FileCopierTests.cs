@@ -1,7 +1,7 @@
 using System;
 using System.IO;
+using AwesomeAssertions;
 using FileForge.IO;
-using FluentAssertions;
 using Xunit;
 
 namespace FileForge.Tests;
@@ -23,7 +23,7 @@ public class FileCopierTests
     {
         int bufferSize = FileCopier.CalculateOptimalBufferSize(fileSize);
 
-        bufferSize.Should().BeGreaterOrEqualTo(expectedMinSize);
+        bufferSize.Should().BeGreaterThanOrEqualTo(expectedMinSize);
     }
 
     [Theory]

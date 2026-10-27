@@ -1,6 +1,6 @@
 using System;
+using AwesomeAssertions;
 using FileForge.Terminal;
-using FluentAssertions;
 using Xunit;
 
 namespace FileForge.Tests;

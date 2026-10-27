@@ -1,5 +1,5 @@
+using AwesomeAssertions;
 using FileForge.IO;
-using FluentAssertions;
 using Xunit;
 
 namespace FileForge.Tests.IO;

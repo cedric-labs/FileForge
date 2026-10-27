@@ -1,6 +1,6 @@
 using System;
+using AwesomeAssertions;
 using FileForge.Paths;
-using FluentAssertions;
 using Xunit;
 
 namespace FileForge.Tests;
