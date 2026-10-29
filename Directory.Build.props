@@ -26,9 +26,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  <!-- MinVer fixe par défaut AssemblyVersion à Majeur.0.0.0. Les packages publiés avant MinVer portaient la version
-       complète : un consommateur compilé contre eux exige cette version, et le runtime refuse alors de charger une
-       assembly retombée à Majeur.0.0.0. La version d'assembly suit donc la version complète, toujours issue du tag Git. -->
+  <!-- By default MinVer sets AssemblyVersion to Major.0.0.0. Packages published before MinVer carried the full
+       version: a consumer compiled against them requires that version, and the runtime then refuses to load an
+       assembly that fell back to Major.0.0.0. The assembly version therefore follows the full version, still taken from the Git tag. -->
   <Target Name="AlignAssemblyVersionWithPackageVersion" AfterTargets="MinVer">
     <PropertyGroup>
       <AssemblyVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).0</AssemblyVersion>

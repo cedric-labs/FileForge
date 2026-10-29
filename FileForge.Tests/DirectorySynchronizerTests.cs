@@ -50,13 +50,13 @@ public class DirectorySynchronizerTests
         try
         {
             File.WriteAllText(Path.Combine(srcDir, "doc.txt"), "Contenu source");
-            File.WriteAllText(Path.Combine(dstDir, "obsolete.txt"), "À supprimer");
+            File.WriteAllText(Path.Combine(dstDir, "obsolete.txt"), "To be deleted");
             var obsoleteEmpty = Path.Combine(dstDir, "ObsoleteEmptyDir");
             Directory.CreateDirectory(obsoleteEmpty);
 
             var srcSubDir = Path.Combine(srcDir, "NewSubDir");
             Directory.CreateDirectory(srcSubDir);
-            File.WriteAllText(Path.Combine(srcSubDir, "subdoc.txt"), "Contenu sous-dossier");
+            File.WriteAllText(Path.Combine(srcSubDir, "subdoc.txt"), "Subfolder content");
 
             var excludedSub = Path.Combine(dstDir, "ExcludedDir");
             Directory.CreateDirectory(excludedSub);
@@ -83,7 +83,7 @@ public class DirectorySynchronizerTests
             File.Exists(Path.Combine(dstDir, "NewSubDir", "subdoc.txt")).Should().BeTrue();
             Directory.Exists(excludedSub).Should().BeFalse();
 
-            // Deuxième passage sans changement
+            // Second pass with no change
             DirectorySynchronizer.CloneDirectory(srcDir, dstDir, syncOptions);
         }
         finally
@@ -107,7 +107,7 @@ public class DirectorySynchronizerTests
 
         try
         {
-            File.WriteAllText(Path.Combine(srcDir, "data.txt"), "Première version");
+            File.WriteAllText(Path.Combine(srcDir, "data.txt"), "First version");
 
             var syncOptions = new DirectorySyncOptions
             {
@@ -129,7 +129,7 @@ public class DirectorySynchronizerTests
             File.Exists(catalogPath).Should().BeTrue();
             Directory.Exists(staleTempPath).Should().BeFalse();
 
-            // Deuxième passage incrémental sans changement
+            // Second incremental pass with no change
             DirectorySynchronizer.IncrementalBackup(srcDir, dstDir, syncOptions);
         }
         finally
@@ -149,7 +149,7 @@ public class DirectorySynchronizerTests
         var filePath = Path.Combine(subDir, "file_readonly.txt");
 
         Directory.CreateDirectory(subDir);
-        File.WriteAllText(filePath, "Contenu protégé");
+        File.WriteAllText(filePath, "Protected content");
 
         File.SetAttributes(filePath, FileAttributes.ReadOnly);
         File.SetAttributes(subDir, FileAttributes.ReadOnly | FileAttributes.Directory);

@@ -1,27 +1,27 @@
 namespace FileForge.Terminal;
 
 /// <summary>
-/// Définit les phases du cycle de vie du tableau de bord console.
+/// Life cycle phases of the console dashboard.
 /// </summary>
 public enum DashboardPhase
 {
     /// <summary>
-    /// Phase d'analyse, d'inventaire et de comparaison des répertoires.
+    /// Scanning, listing and comparing the directories.
     /// </summary>
     Scanning,
 
     /// <summary>
-    /// Phase active de transfert et de copie des fichiers.
+    /// Transferring and copying the files.
     /// </summary>
     Copying,
 
     /// <summary>
-    /// Phase où aucun fichier ne nécessite de transfert (disque à jour).
+    /// No file needs a transfer (disk up to date).
     /// </summary>
     UpToDate,
 
     /// <summary>
-    /// Phase de finalisation et de synthèse une fois les opérations achevées.
+    /// Final summary once the operations are over.
     /// </summary>
     Completed
 }

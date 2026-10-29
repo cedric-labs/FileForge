@@ -15,7 +15,7 @@ public class ArchitectureRulesTests
     [Fact]
     public void ClassNames_WhenScanned_DoNotContainCatchAllSuffixes()
     {
-        // Règle 3 : Interdiction de *Helper*, *Utils*, *Manager*, *Common*
+        // Rule 3: no *Helper*, *Utils*, *Manager*, *Common* classes
         var types = Types.InAssembly(ProductionAssembly).GetTypes();
 
         var invalidTypes = types
@@ -27,13 +27,13 @@ public class ArchitectureRulesTests
             .ToList();
 
         invalidTypes.Should().BeEmpty(
-            because: "les classes ne doivent pas porter de noms fourre-tout (*Helper*, *Utils*, *Manager*, *Common*)");
+            because: "classes must not have catch-all names (*Helper*, *Utils*, *Manager*, *Common*)");
     }
 
     [Fact]
     public void Namespaces_WhenScanned_DoNotContainCatchAllSuffixes()
     {
-        // Règle 3 : Interdiction de namespaces génériques
+        // Rule 3: no generic namespaces
         var types = Types.InAssembly(ProductionAssembly).GetTypes();
 
         var invalidNamespaces = types
@@ -46,13 +46,13 @@ public class ArchitectureRulesTests
             .ToList();
 
         invalidNamespaces.Should().BeEmpty(
-            because: "aucun namespace ne doit s'appeler Helper, Utils, Manager ou Common");
+            because: "no namespace may be named Helper, Utils, Manager or Common");
     }
 
     [Fact]
     public void SourceCode_WhenScanned_ContainsNoWarningSuppressionDirectives()
     {
-        // Règle 1 : Zéro masquage d'avertissement (#pragma warning disable, // NOSONAR, [SuppressMessage])
+        // Rule 1: no warning suppression (#pragma warning disable, // NOSONAR, [SuppressMessage])
         var sourceFiles = GetProductionSourceFiles();
 
         foreach (var file in sourceFiles)
@@ -60,20 +60,20 @@ public class ArchitectureRulesTests
             var content = File.ReadAllText(file);
 
             content.Should().NotContain("#pragma warning disable",
-                because: $"le fichier {Path.GetFileName(file)} ne doit pas désactiver d'avertissements du compilateur");
+                because: $"file {Path.GetFileName(file)} must not disable compiler warnings");
 
             content.Should().NotContain("// NOSONAR",
-                because: $"le fichier {Path.GetFileName(file)} ne doit pas contenir de directive // NOSONAR");
+                because: $"file {Path.GetFileName(file)} must not contain a // NOSONAR directive");
 
             content.Should().NotContain("[SuppressMessage",
-                because: $"le fichier {Path.GetFileName(file)} ne doit pas supprimer de messages d'analyse");
+                because: $"file {Path.GetFileName(file)} must not suppress analyzer messages");
         }
     }
 
     [Fact]
     public void SourceCode_WhenScanned_ContainsNoSilentCatchBlocks()
     {
-        // Règle 2 : Zéro bloc catch muet
+        // Rule 2: no silent catch block
         var sourceFiles = GetProductionSourceFiles();
 
         foreach (var file in sourceFiles)
@@ -84,7 +84,7 @@ public class ArchitectureRulesTests
                 var trimmed = lines[i].Trim();
                 if (trimmed.StartsWith("catch", StringComparison.Ordinal) && trimmed.EndsWith("{}", StringComparison.Ordinal))
                 {
-                    Assert.Fail($"Bloc catch muet détecté dans {Path.GetFileName(file)} à la ligne {i + 1} : '{trimmed}'");
+                    Assert.Fail($"Silent catch block found in {Path.GetFileName(file)} at line {i + 1}: '{trimmed}'");
                 }
             }
         }
@@ -93,7 +93,7 @@ public class ArchitectureRulesTests
     [Fact]
     public void SourceCode_WhenScanned_ContainsNoAiBuzzwords()
     {
-        // Règle 6 : Zéro marqueur lexical d'IA
+        // Rule 6: no AI lexical markers
         string[] aiBuzzwords = ["Robust", "Resilient", "Seamless", "Smart", "Comprehensive", "Ultimate"];
         var types = Types.InAssembly(ProductionAssembly).GetTypes();
 
@@ -101,14 +101,14 @@ public class ArchitectureRulesTests
         {
             foreach (var word in aiBuzzwords)
             {
-                type.Name.Should().NotContain(word, because: $"le type {type.Name} ne doit pas contenir de marqueur lexical d'IA '{word}'");
+                type.Name.Should().NotContain(word, because: $"type {type.Name} must not contain the AI lexical marker '{word}'");
             }
 
             foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
             {
                 foreach (var word in aiBuzzwords)
                 {
-                    method.Name.Should().NotContain(word, because: $"la méthode {type.Name}.{method.Name} ne doit pas contenir de marqueur lexical d'IA '{word}'");
+                    method.Name.Should().NotContain(word, because: $"method {type.Name}.{method.Name} must not contain the AI lexical marker '{word}'");
                 }
             }
         }

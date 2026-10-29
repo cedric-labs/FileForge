@@ -7,7 +7,7 @@ using FileForge.Diagnostics;
 namespace FileForge.Storage;
 
 /// <summary>
-/// Détermine les capacités matérielles (SSD, RAM, cœurs CPU) pour optimiser le degré de parallélisme.
+/// Reads the hardware capabilities (SSD, RAM, CPU cores) to choose the degree of parallelism.
 /// </summary>
 public static class HardwarePerformanceAdvisor
 {
@@ -19,11 +19,11 @@ public static class HardwarePerformanceAdvisor
     }
 
     /// <summary>
-    /// Calcule le degré de parallélisme optimal en fonction des cœurs logiques, du type de disque et de la RAM.
+    /// Computes the degree of parallelism from the logical cores, the disk type and the free RAM.
     /// </summary>
-    /// <param name="sourcePath">Chemin de la source.</param>
-    /// <param name="destPath">Chemin de la destination.</param>
-    /// <returns>Degré de parallélisme recommandé (entre 1 et 16).</returns>
+    /// <param name="sourcePath">Source path.</param>
+    /// <param name="destPath">Destination path.</param>
+    /// <returns>The recommended degree of parallelism, from 1 to 16.</returns>
     public static int CalculateOptimalParallelism(string sourcePath, string destPath)
     {
         int processorCount = Environment.ProcessorCount;
@@ -51,10 +51,10 @@ public static class HardwarePerformanceAdvisor
     }
 
     /// <summary>
-    /// Détermine si un chemin est localisé sur un disque SSD via WMI.
+    /// Uses WMI to tell whether a path is on an SSD.
     /// </summary>
-    /// <param name="path">Chemin d'accès ou lettre de lecteur à analyser.</param>
-    /// <returns>True si le lecteur sous-jacent est un disque SSD ou NVMe, sinon false.</returns>
+    /// <param name="path">Path or drive letter.</param>
+    /// <returns>True when the underlying drive is an SSD or NVMe disk; otherwise false.</returns>
     public static bool IsSsdDrive(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -100,20 +100,20 @@ public static class HardwarePerformanceAdvisor
         }
         catch (ManagementException ex)
         {
-            RaiseLog($"[WARN] Détection SSD impossible via WMI ({path}) : {ex.Message}");
+            RaiseLog($"[WARN] Could not detect an SSD through WMI ({path}): {ex.Message}");
             return false;
         }
         catch (UnauthorizedAccessException ex)
         {
-            RaiseLog($"[WARN] Accès refusé pour la détection du disque ({path}) : {ex.Message}");
+            RaiseLog($"[WARN] Access denied while detecting the disk ({path}): {ex.Message}");
             return false;
         }
     }
 
     /// <summary>
-    /// Récupère la mémoire vive physique disponible en Gigaoctets via WMI.
+    /// Uses WMI to read the free physical memory in gigabytes.
     /// </summary>
-    /// <returns>Quantité de mémoire vive libre en Go (4.0 Go par défaut en cas d'erreur de lecture).</returns>
+    /// <returns>The free memory in GB (4.0 GB when it cannot be read).</returns>
     public static double GetAvailableMemoryInGB()
     {
         try
@@ -131,7 +131,7 @@ public static class HardwarePerformanceAdvisor
         }
         catch (ManagementException ex)
         {
-            RaiseLog($"[WARN] Récupération de la mémoire libre impossible ({ex.Message}). Utilisation valeur par défaut (4 Go).");
+            RaiseLog($"[WARN] Could not read the free memory ({ex.Message}). Using the default value (4 GB).");
             return 4.0;
         }
     }

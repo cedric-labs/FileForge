@@ -27,9 +27,9 @@ public class FileCopierTests
     }
 
     [Theory]
-    [InlineData(500, "500 o")]
-    [InlineData(2048, "2 Ko")]
-    [InlineData(5 * 1024 * 1024, "5 Mo")]
+    [InlineData(500, "500 B")]
+    [InlineData(2048, "2 KB")]
+    [InlineData(5 * 1024 * 1024, "5 MB")]
     public void FormatFileSize_WhenGivenByteCount_ReturnsExpectedString(long bytes, string expected)
     {
         string formatted = FileCopier.FormatFileSize(bytes);
@@ -48,14 +48,14 @@ public class FileCopierTests
 
         try
         {
-            File.WriteAllText(srcFile, "Contenu de test pour la copie sécurisée.");
-            File.WriteAllText(dstFile, "Ancien contenu à écraser");
+            File.WriteAllText(srcFile, "Test content for the transactional copy.");
+            File.WriteAllText(dstFile, "Old content to overwrite");
 
             bool success = FileCopier.CopyFile(srcFile, dstFile, verifyHash: true);
 
             success.Should().BeTrue();
             File.Exists(dstFile).Should().BeTrue();
-            File.ReadAllText(dstFile).Should().Be("Contenu de test pour la copie sécurisée.");
+            File.ReadAllText(dstFile).Should().Be("Test content for the transactional copy.");
         }
         finally
         {
@@ -77,8 +77,8 @@ public class FileCopierTests
 
         try
         {
-            File.WriteAllText(file1, "Même contenu");
-            File.WriteAllText(file2, "Même contenu");
+            File.WriteAllText(file1, "Same content");
+            File.WriteAllText(file2, "Same content");
 
             bool matches = FileCopier.CompareFileHashes(file1, file2);
 
@@ -228,7 +228,7 @@ public class FileCopierTests
             var hash = FileCopier.ComputeFileHash(tempFile);
 
             hash.Should().NotBeNullOrWhiteSpace();
-            hash.Length.Should().Be(64); // SHA-256 produit 64 caractères hexadécimaux
+            hash.Length.Should().Be(64); // SHA-256 yields 64 hexadecimal characters
         }
         finally
         {

@@ -25,7 +25,7 @@ public sealed class ProtectedFileStoreTests : IDisposable
             }
             catch (IOException)
             {
-                // Ignorer le verrou temporaire du système de fichiers lors du nettoyage
+                // A file briefly locked by the file system (indexer, antivirus) is left in the temp folder rather than failing the test.
             }
         }
     }

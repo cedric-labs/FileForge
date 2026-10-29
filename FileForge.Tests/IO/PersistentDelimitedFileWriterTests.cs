@@ -77,8 +77,8 @@ public sealed class PersistentDelimitedFileWriterTests : IAsyncLifetime
 
     [Theory]
     [InlineData("simple", "simple")]
-    [InlineData("valeur,avec,virgule", "\"valeur,avec,virgule\"")]
-    [InlineData("valeur \"avec\" guillemets", "\"valeur \"\"avec\"\" guillemets\"")]
+    [InlineData("value,with,commas", "\"value,with,commas\"")]
+    [InlineData("value \"with\" quotes", "\"value \"\"with\"\" quotes\"")]
     public void EscapeField_WhenCalled_EscapesAsExpected(string input, string expected)
     {
         // Act

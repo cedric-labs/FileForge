@@ -9,7 +9,7 @@ using FileForge.Diagnostics;
 namespace FileForge.IO;
 
 /// <summary>
-/// Gère la persistance, le chargement et la reconstruction des catalogues d'index pour les sauvegardes incrémentales.
+/// Saves, loads and rebuilds the index catalogs used by incremental backups.
 /// </summary>
 public static partial class SyncCatalogRepository
 {
@@ -27,10 +27,10 @@ public static partial class SyncCatalogRepository
     private static partial Regex BackupFolderRegex();
 
     /// <summary>
-    /// Charge un catalogue d'index binaire à partir du chemin spécifié.
+    /// Loads a binary index catalog.
     /// </summary>
-    /// <param name="catalogPath">Chemin du fichier catalogue binaire (.dat).</param>
-    /// <returns>Dictionnaire associant le chemin relatif à l'empreinte horodatée du fichier.</returns>
+    /// <param name="catalogPath">Path of the binary catalog file (.dat).</param>
+    /// <returns>A dictionary mapping each relative path to the file's timestamped fingerprint.</returns>
     public static Dictionary<string, string> LoadCatalog(string catalogPath)
     {
         var catalog = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -52,7 +52,7 @@ public static partial class SyncCatalogRepository
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException)
         {
-            RaiseLog($"[WARN] Catalogue d'index corrompu ou illisible ({catalogPath}) : {ex.Message}. Réinitialisation d'un catalogue vierge.");
+            RaiseLog($"[WARN] Index catalog corrupted or unreadable ({catalogPath}): {ex.Message}. Starting from an empty catalog.");
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
@@ -60,10 +60,10 @@ public static partial class SyncCatalogRepository
     }
 
     /// <summary>
-    /// Enregistre le catalogue d'index dans un fichier binaire compact.
+    /// Saves the index catalog to a compact binary file.
     /// </summary>
-    /// <param name="catalog">Dictionnaire des éléments et empreintes à sauvegarder.</param>
-    /// <param name="catalogPath">Chemin de destination du fichier catalogue (.dat).</param>
+    /// <param name="catalog">Items and fingerprints to save.</param>
+    /// <param name="catalogPath">Path of the catalog file (.dat).</param>
     public static void SaveCatalog(Dictionary<string, string> catalog, string catalogPath)
     {
         ArgumentNullException.ThrowIfNull(catalog);
@@ -81,14 +81,14 @@ public static partial class SyncCatalogRepository
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            RaiseLog($"[WARN] Impossible de sauvegarder le catalogue d'index ({catalogPath}) : {ex.Message}");
+            RaiseLog($"[WARN] Could not save the index catalog ({catalogPath}): {ex.Message}");
         }
     }
 
     /// <summary>
-    /// Renomme les dossiers d'incréments historiques ("sI1", "sI2"...) au format standard "Backup_YYYYMMDD_HHmm".
+    /// Renames legacy increment folders ("sI1", "sI2"...) to the "Backup_YYYYMMDD_HHmm" format.
     /// </summary>
-    /// <param name="destBaseDir">Répertoire racine contenant les dossiers de sauvegarde.</param>
+    /// <param name="destBaseDir">Root folder holding the backup folders.</param>
     public static void MigrateLegacyBackupNames(string destBaseDir)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destBaseDir);
@@ -98,7 +98,7 @@ public static partial class SyncCatalogRepository
             return;
         }
 
-        RaiseLog("[MIGRATION] Démarrage du renommage des anciens dossiers...");
+        RaiseLog("[MIGRATION] Renaming legacy folders...");
 
         var directories = Directory.GetDirectories(destBaseDir)
             .Select(d => new DirectoryInfo(d))
@@ -120,25 +120,25 @@ public static partial class SyncCatalogRepository
                 counter++;
             }
 
-            RaiseLog($"[MIGRATION] Renommage de {dir.Name} -> {newName}");
+            RaiseLog($"[MIGRATION] Renaming {dir.Name} -> {newName}");
             try
             {
                 Directory.Move(dir.FullName, newFullPath);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                RaiseLog($"[ERROR] Échec lors du renommage de {dir.Name} : {ex.Message}");
+                RaiseLog($"[ERROR] Could not rename {dir.Name}: {ex.Message}");
             }
         }
 
-        RaiseLog("[MIGRATION] Renommage terminé.");
+        RaiseLog("[MIGRATION] Renaming complete.");
     }
 
     /// <summary>
-    /// Reconstitue un fichier catalogue d'index initial à partir des dossiers d'incréments existants sur le disque cible.
+    /// Rebuilds an initial index catalog from the increment folders already on the target disk.
     /// </summary>
-    /// <param name="sourceRoot">Répertoire racine source.</param>
-    /// <param name="destBaseDir">Répertoire racine cible contenant les incréments existants.</param>
+    /// <param name="sourceRoot">Source root folder.</param>
+    /// <param name="destBaseDir">Target root folder holding the existing increments.</param>
     public static void BootstrapInitialCatalog(string sourceRoot, string destBaseDir)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceRoot);
@@ -148,11 +148,11 @@ public static partial class SyncCatalogRepository
 
         if (File.Exists(indexFilePath))
         {
-            RaiseLog("[BOOTSTRAP] Un catalogue existe déjà. Initialisation avortée.");
+            RaiseLog("[BOOTSTRAP] A catalog already exists. Rebuild skipped.");
             return;
         }
 
-        RaiseLog("[BOOTSTRAP] Reconstitution du catalogue à partir de la pile d'incréments...");
+        RaiseLog("[BOOTSTRAP] Rebuilding the catalog from the increment stack...");
 
         var legacyDirs = Directory.GetDirectories(destBaseDir)
             .Select(d => new DirectoryInfo(d))
@@ -162,7 +162,7 @@ public static partial class SyncCatalogRepository
 
         if (legacyDirs.Count == 0)
         {
-            RaiseLog("[BOOTSTRAP] Aucun dossier incrémental détecté. Le catalogue sera créé vide.");
+            RaiseLog("[BOOTSTRAP] No increment folder found. The catalog will be created empty.");
             return;
         }
 
@@ -170,7 +170,7 @@ public static partial class SyncCatalogRepository
 
         foreach (var backupDir in legacyDirs)
         {
-            RaiseLog($"[BOOTSTRAP] Traitement de l'incrément : {backupDir.Name}");
+            RaiseLog($"[BOOTSTRAP] Processing increment: {backupDir.Name}");
 
             var files = Directory.EnumerateFiles(backupDir.FullName, "*", SearchOption.AllDirectories);
             foreach (string filePath in files)
@@ -192,6 +192,6 @@ public static partial class SyncCatalogRepository
         }
 
         SaveCatalog(currentCatalog, indexFilePath);
-        RaiseLog($"[BOOTSTRAP] Catalogue initialisé avec succès. {currentCatalog.Count} fichiers uniques référencés.");
+        RaiseLog($"[BOOTSTRAP] Catalog rebuilt: {currentCatalog.Count} unique files.");
     }
 }

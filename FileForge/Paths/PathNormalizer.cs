@@ -4,15 +4,15 @@ using System.IO;
 namespace FileForge.Paths;
 
 /// <summary>
-/// Normalise et convertit les chemins d'accès pour supporter les chemins longs Windows (>260 caractères) et UNC.
+/// Converts paths so that Windows long paths (over 260 characters) and UNC paths can be used.
 /// </summary>
 public static class PathNormalizer
 {
     /// <summary>
-    /// Normalise un chemin pour supporter les chemins longs sous Windows avec le préfixe étendu.
+    /// Adds the extended-length prefix to a path so that Windows accepts it beyond 260 characters.
     /// </summary>
-    /// <param name="path">Chemin à normaliser.</param>
-    /// <returns>Chemin normalisé avec préfixe \\?\ ou \\?\UNC\.</returns>
+    /// <param name="path">Path to normalize.</param>
+    /// <returns>The path with the \\?\ or \\?\UNC\ prefix.</returns>
     public static string NormalizeLongPath(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -33,10 +33,10 @@ public static class PathNormalizer
     }
 
     /// <summary>
-    /// Supprime les préfixes de chemin long (\\?\ ou \\?\UNC\) pour un affichage ou un traitement standard.
+    /// Removes the long path prefixes (\\?\ or \\?\UNC\) for display or for APIs that do not accept them.
     /// </summary>
-    /// <param name="path">Chemin normalisé potentiellement préfixé.</param>
-    /// <returns>Chemin sans le préfixe étendu.</returns>
+    /// <param name="path">Path, possibly prefixed.</param>
+    /// <returns>The path without the extended-length prefix.</returns>
     public static string RemoveLongPathPrefix(string path)
     {
         if (string.IsNullOrEmpty(path))

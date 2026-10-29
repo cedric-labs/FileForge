@@ -1,43 +1,43 @@
 namespace FileForge.IO;
 
 /// <summary>
-/// Type d'opération sur les fichiers.
+/// Kind of file operation.
 /// </summary>
 public enum FileOperationType
 {
     /// <summary>
-    /// Opération de copie.
+    /// Copy.
     /// </summary>
     Copy,
 
     /// <summary>
-    /// Opération de suppression.
+    /// Deletion.
     /// </summary>
     Delete,
 
     /// <summary>
-    /// Opération de déplacement.
+    /// Move.
     /// </summary>
     Move,
 
     /// <summary>
-    /// Opération d'analyse ou d'inventaire.
+    /// Scan or inventory.
     /// </summary>
     Scan,
 
     /// <summary>
-    /// Opération de comparaison de fichiers ou d'empreintes.
+    /// Comparison of files or hashes.
     /// </summary>
     Compare,
 
     /// <summary>
-    /// Opération inactive ou en attente.
+    /// No operation in progress.
     /// </summary>
     Inactive
 }
 
 /// <summary>
-/// Informations sur la progression d'une opération de fichier.
+/// Progress of a file operation.
 /// </summary>
 public sealed class FileOperationProgress(
     string sourcePath,
@@ -48,37 +48,37 @@ public sealed class FileOperationProgress(
     bool isCompleted = false)
 {
     /// <summary>
-    /// Chemin du fichier source concerné.
+    /// Source file path.
     /// </summary>
     public string SourcePath { get; } = sourcePath;
 
     /// <summary>
-    /// Chemin du fichier de destination concerné.
+    /// Destination file path.
     /// </summary>
     public string DestinationPath { get; } = destinationPath;
 
     /// <summary>
-    /// Taille totale en octets de l'élément en cours de traitement.
+    /// Total size in bytes of the item being processed.
     /// </summary>
     public long TotalBytes { get; } = totalBytes;
 
     /// <summary>
-    /// Nombre d'octets déjà traités ou transférés.
+    /// Bytes already processed or transferred.
     /// </summary>
     public long ProcessedBytes { get; } = processedBytes;
 
     /// <summary>
-    /// Pourcentage de complétion calculé entre 0 et 100.
+    /// Completion percentage, from 0 to 100.
     /// </summary>
     public double PercentComplete => TotalBytes > 0 ? (double)ProcessedBytes / TotalBytes * 100 : 0;
 
     /// <summary>
-    /// Type de l'opération en cours.
+    /// Kind of the current operation.
     /// </summary>
     public FileOperationType OperationType { get; } = operationType;
 
     /// <summary>
-    /// Indique si l'opération individuelle est intégralement achevée.
+    /// Whether this item is fully processed.
     /// </summary>
     public bool IsCompleted { get; } = isCompleted;
 }

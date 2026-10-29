@@ -1,47 +1,47 @@
 namespace FileForge.Sync;
 
 /// <summary>
-/// Options complètes paramétrant l'exécution d'une synchronisation ou d'une sauvegarde de répertoires.
+/// Options that drive a directory synchronization or backup run.
 /// </summary>
 public sealed class DirectorySyncOptions
 {
     /// <summary>
-    /// Degré de parallélisme appliqué pour l'inventaire des fichiers sources.
+    /// Degree of parallelism used to list the source files.
     /// </summary>
     public int SourceListParallelism { get; init; } = 1;
 
     /// <summary>
-    /// Degré de parallélisme appliqué pour l'inventaire des fichiers cibles.
+    /// Degree of parallelism used to list the target files.
     /// </summary>
     public int DestinationListParallelism { get; init; } = 1;
 
     /// <summary>
-    /// Degré de parallélisme appliqué pour le transfert et la copie des fichiers.
+    /// Degree of parallelism used to transfer and copy the files.
     /// </summary>
     public int CopyParallelism { get; init; } = 1;
 
     /// <summary>
-    /// Indique s'il faut comparer les empreintes de hachage SHA256 après chaque transfert.
+    /// Whether SHA256 hashes are compared after each transfer.
     /// </summary>
     public bool VerifyHash { get; init; }
 
     /// <summary>
-    /// Filtres d'inclusion sous forme de motifs séparés par des points-virgules (ex: "*.jpg;*.png").
+    /// Inclusion filters, as semicolon-separated patterns (for example "*.jpg;*.png").
     /// </summary>
     public string IncludedFilters { get; init; } = "*";
 
     /// <summary>
-    /// Filtres d'exclusion sous forme de motifs séparés par des points-virgules (ex: "*.tmp;*.log").
+    /// Exclusion filters, as semicolon-separated patterns (for example "*.tmp;*.log").
     /// </summary>
     public string ExcludedFilters { get; init; } = string.Empty;
 
     /// <summary>
-    /// Options avancées d'exclusion par chemins absolus ou relatifs.
+    /// Exclusion by absolute or relative paths.
     /// </summary>
     public DirectoryCloneOptions? CloneOptions { get; init; }
 
     /// <summary>
-    /// Intitulé textuel affiché dans l'en-tête du tableau de bord console.
+    /// Title shown in the header of the console dashboard.
     /// </summary>
     public string? TaskTitle { get; init; }
 }

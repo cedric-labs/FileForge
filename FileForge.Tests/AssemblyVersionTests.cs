@@ -8,8 +8,8 @@ namespace FileForge.Tests;
 public sealed class AssemblyVersionTests
 {
     /// <summary>
-    /// Les consommateurs compilés contre une version antérieure du package référencent sa version d'assembly :
-    /// si elle retombait à Majeur.0.0.0 (comportement par défaut de MinVer), le runtime refuserait de la charger.
+    /// Consumers compiled against an earlier version of the package reference its assembly version:
+    /// if it fell back to Major.0.0.0 (the MinVer default), the runtime would refuse to load it.
     /// </summary>
     [Fact]
     public void AssemblyVersion_WhenBuiltFromGitTag_MatchesThePackageVersion()

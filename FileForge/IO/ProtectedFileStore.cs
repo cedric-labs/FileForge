@@ -4,23 +4,23 @@ using System.Text;
 namespace FileForge.IO;
 
 /// <summary>
-/// Magasin de persistance locale de secrets et jetons sur fichier chiffré.
-/// Utilise DPAPI (<c>ProtectedData</c> en portée <c>CurrentUser</c>) sous Windows et AES-256 avec IV préfixé en repli.
+/// Stores a secret or token locally in an encrypted file.
+/// Uses DPAPI (<c>ProtectedData</c> with <c>CurrentUser</c> scope) on Windows, and AES-256 with a prefixed IV elsewhere.
 /// </summary>
-/// <param name="filePath">Chemin complet du fichier chiffré.</param>
-/// <param name="entropy">Entropie optionnelle de liaison à l'application ou à l'appareil.</param>
+/// <param name="filePath">Full path of the encrypted file.</param>
+/// <param name="entropy">Optional entropy binding the secret to the application or the device.</param>
 public sealed class ProtectedFileStore(string filePath, byte[]? entropy = null)
 {
     private static readonly byte[] s_defaultEntropy = Encoding.UTF8.GetBytes("FileForge-ProtectedFileStore-v1");
     private readonly string _filePath = !string.IsNullOrWhiteSpace(filePath)
         ? filePath
-        : throw new ArgumentException("Le chemin du fichier protégé ne peut pas être vide.", nameof(filePath));
+        : throw new ArgumentException("The protected file path cannot be empty.", nameof(filePath));
     private readonly byte[] _entropy = entropy is { Length: > 0 } ? [.. entropy] : s_defaultEntropy;
 
     /// <summary>
-    /// Lit et déchiffre la chaîne stockée dans le fichier, ou retourne <c>null</c> si le fichier est absent ou illisible.
+    /// Reads and decrypts the stored string, or returns <c>null</c> when the file is missing or unreadable.
     /// </summary>
-    /// <returns>Texte déchiffré ou <c>null</c>.</returns>
+    /// <returns>The decrypted text, or <c>null</c>.</returns>
     public string? ReadSecret()
     {
         try
@@ -44,15 +44,15 @@ public sealed class ProtectedFileStore(string filePath, byte[]? entropy = null)
         }
         catch (Exception ex) when (ex is CryptographicException or IOException or UnauthorizedAccessException)
         {
-            // En cas de corruption ou d'incompatibilité machine, retourner null
+            // A corrupted file, or one encrypted by another user or machine, is treated as no stored secret: the caller asks for it again.
             return null;
         }
     }
 
     /// <summary>
-    /// Chiffre et écrit une chaîne secrète sur le disque.
+    /// Encrypts a secret string and writes it to disk.
     /// </summary>
-    /// <param name="secret">Valeur secrète non vide à persister.</param>
+    /// <param name="secret">Non-empty secret to store.</param>
     public void WriteSecret(string secret)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(secret);
@@ -72,7 +72,7 @@ public sealed class ProtectedFileStore(string filePath, byte[]? entropy = null)
     }
 
     /// <summary>
-    /// Supprime le fichier protégé s'il existe.
+    /// Deletes the protected file if it exists.
     /// </summary>
     public void ClearSecret()
     {
@@ -85,16 +85,16 @@ public sealed class ProtectedFileStore(string filePath, byte[]? entropy = null)
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Tolérance idempotente si le fichier est déjà supprimé ou verrouillé
+            // Deletion is best effort: a file already gone or locked leaves the caller with nothing to do, and a locked file is read as before.
         }
     }
 
     /// <summary>
-    /// Chiffre un tableau d'octets via AES-256-CBC avec clé dérivée par SHA-256 de l'entropie et IV de 16 octets préfixé.
+    /// Encrypts bytes with AES-256-CBC, using a key derived from the entropy by SHA-256 and a prefixed 16-byte IV.
     /// </summary>
-    /// <param name="plainBytes">Données en clair.</param>
-    /// <param name="entropy">Entropie servant à dériver la clé AES-256.</param>
-    /// <returns>Données chiffrées préfixées par l'IV.</returns>
+    /// <param name="plainBytes">Plain data.</param>
+    /// <param name="entropy">Entropy the AES-256 key is derived from.</param>
+    /// <returns>The encrypted data, prefixed with the IV.</returns>
     public static byte[] EncryptAesWithEntropy(byte[] plainBytes, byte[] entropy)
     {
         ArgumentNullException.ThrowIfNull(plainBytes);
@@ -114,11 +114,11 @@ public sealed class ProtectedFileStore(string filePath, byte[]? entropy = null)
     }
 
     /// <summary>
-    /// Déchiffre un tableau d'octets chiffré par <see cref="EncryptAesWithEntropy"/>.
+    /// Decrypts bytes encrypted by <see cref="EncryptAesWithEntropy"/>.
     /// </summary>
-    /// <param name="cipherData">Données chiffrées préfixées par l'IV de 16 octets.</param>
-    /// <param name="entropy">Entropie servant à dériver la clé AES-256.</param>
-    /// <returns>Données déchiffrées.</returns>
+    /// <param name="cipherData">Encrypted data, prefixed with the 16-byte IV.</param>
+    /// <param name="entropy">Entropy the AES-256 key is derived from.</param>
+    /// <returns>The decrypted data.</returns>
     public static byte[] DecryptAesWithEntropy(byte[] cipherData, byte[] entropy)
     {
         ArgumentNullException.ThrowIfNull(cipherData);
@@ -130,7 +130,7 @@ public sealed class ProtectedFileStore(string filePath, byte[]? entropy = null)
         var iv = new byte[16];
         if (cipherData.Length < iv.Length)
         {
-            throw new CryptographicException("Données chiffrées invalides.");
+            throw new CryptographicException("Invalid encrypted data.");
         }
 
         Buffer.BlockCopy(cipherData, 0, iv, 0, iv.Length);

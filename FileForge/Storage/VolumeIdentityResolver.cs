@@ -6,7 +6,7 @@ using System.Text;
 namespace FileForge.Storage;
 
 /// <summary>
-/// Détermine et extrait un identifiant stable pour un volume local ou un partage réseau UNC.
+/// Resolves a stable identifier for a local volume or a UNC network share.
 /// </summary>
 public static class VolumeIdentityResolver
 {
@@ -23,10 +23,10 @@ public static class VolumeIdentityResolver
         uint nFileSystemNameSize);
 
     /// <summary>
-    /// Retourne un identifiant stable pour un chemin local (numéro de série du volume) ou UNC (serveur\partage).
+    /// Returns a stable identifier for a local path (volume serial number) or a UNC path (server\share).
     /// </summary>
-    /// <param name="path">Chemin local ou UNC à identifier.</param>
-    /// <returns>Identifiant stable sous forme "VOL:XXXXXXXX" ou "UNC:\\serveur\partage", ou null si non résolu.</returns>
+    /// <param name="path">Local or UNC path.</param>
+    /// <returns>An identifier such as "VOL:XXXXXXXX" or "UNC:\\server\share", or null when it cannot be resolved.</returns>
     public static string? GetDiskId(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -46,10 +46,10 @@ public static class VolumeIdentityResolver
     }
 
     /// <summary>
-    /// Utilise l'API Win32 GetVolumeInformation pour obtenir le numéro de série d'un volume local.
+    /// Reads the serial number of a local volume through the Win32 GetVolumeInformation API.
     /// </summary>
-    /// <param name="path">Chemin local à analyser.</param>
-    /// <returns>Identifiant "VOL:XXXXXXXX" ou null en cas d'erreur de lecture.</returns>
+    /// <param name="path">Local path.</param>
+    /// <returns>A "VOL:XXXXXXXX" identifier, or null when it cannot be read.</returns>
     public static string? GetVolumeIdFromPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -85,10 +85,10 @@ public static class VolumeIdentityResolver
     }
 
     /// <summary>
-    /// Extrait la racine d'un chemin UNC (\\serveur\partage) de manière déterministe.
+    /// Extracts the root (\\server\share) of a UNC path.
     /// </summary>
-    /// <param name="uncPath">Chemin réseau UNC.</param>
-    /// <returns>Racine \\serveur\partage ou le chemin original si invalide.</returns>
+    /// <param name="uncPath">UNC network path.</param>
+    /// <returns>The \\server\share root, or the original path when it is not a valid UNC path.</returns>
     public static string? GetUncRoot(string? uncPath)
     {
         if (string.IsNullOrWhiteSpace(uncPath))
@@ -108,12 +108,12 @@ public static class VolumeIdentityResolver
     }
 
     /// <summary>
-    /// Compare deux identifiants de disque ou de partage réseau en tolérant les variations d'écriture
-    /// (ex: "UNC:\serveur\partage" et "UNC:\\serveur\partage").
+    /// Compares two disk or network share identifiers, ignoring spelling variants
+    /// (e.g. "UNC:\server\share" and "UNC:\\server\share").
     /// </summary>
-    /// <param name="actual">Identifiant résolu réel.</param>
-    /// <param name="expected">Identifiant attendu dans la configuration.</param>
-    /// <returns>True si les deux identifiants correspondent, sinon false.</returns>
+    /// <param name="actual">Resolved identifier.</param>
+    /// <param name="expected">Identifier expected by the configuration.</param>
+    /// <returns>True when both identifiers match; otherwise false.</returns>
     public static bool AreMatchingDiskIds(string? actual, string? expected)
     {
         if (string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase))
@@ -130,11 +130,11 @@ public static class VolumeIdentityResolver
     }
 
     /// <summary>
-    /// Normalise la forme canonique d'un identifiant de disque.
-    /// Pour les partages réseau UNC, harmonise le préfixe vers la syntaxe "UNC:\\serveur\partage".
+    /// Normalizes a disk identifier to its canonical form.
+    /// For UNC network shares, rewrites the prefix to the "UNC:\\server\share" form.
     /// </summary>
-    /// <param name="diskId">Identifiant de disque à normaliser.</param>
-    /// <returns>Identifiant normalisé.</returns>
+    /// <param name="diskId">Disk identifier to normalize.</param>
+    /// <returns>The normalized identifier.</returns>
     public static string NormalizeDiskId(string diskId)
     {
         if (string.IsNullOrWhiteSpace(diskId))

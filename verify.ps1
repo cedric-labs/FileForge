@@ -12,12 +12,12 @@ $ScriptRoot = $PSScriptRoot
 Set-Location $ScriptRoot
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Pipeline Qualité & SonarQube - FileForge" -ForegroundColor Cyan
+Write-Host "  Quality & SonarQube pipeline - FileForge" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 $SolutionPath = Join-Path $ScriptRoot "FileForge.slnx"
 
-# Détection automatique du token SonarQube
+# Automatic detection of the SonarQube token
 if (-not $SonarToken) {
     if ($env:SONAR_TOKEN) {
         $SonarToken = $env:SONAR_TOKEN
@@ -30,28 +30,28 @@ if (-not $SonarToken) {
     }
 }
 
-# 1. Restauration des outils dotnet locaux
-Write-Host "`n[1/6] Restauration des outils locaux..." -ForegroundColor Yellow
+# 1. Restore the local dotnet tools
+Write-Host "`n[1/6] Restoring local tools..." -ForegroundColor Yellow
 dotnet tool restore
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "Échec de 'dotnet tool restore'."
+    Write-Error "'dotnet tool restore' failed."
     exit $LASTEXITCODE
 }
 
-# 2. Vérification du formatage du code
+# 2. Check the code formatting
 if (-not $SkipFormat) {
-    Write-Host "`n[2/6] Vérification du formatage du code (dotnet format)..." -ForegroundColor Yellow
+    Write-Host "`n[2/6] Checking code formatting (dotnet format)..." -ForegroundColor Yellow
     dotnet format $SolutionPath --verify-no-changes
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "Échec du formatage. Exécutez 'dotnet format' pour corriger les écarts."
+        Write-Error "Formatting check failed. Run 'dotnet format' to fix the differences."
         exit $LASTEXITCODE
     }
     Write-Host "  Formatage conforme." -ForegroundColor Green
 } else {
-    Write-Host "`n[2/6] Vérification du formatage ignorée." -ForegroundColor DarkGray
+    Write-Host "`n[2/6] Formatting check skipped." -ForegroundColor DarkGray
 }
 
-# Nettoyage des résultats de tests et d'analyses précédents
+# Remove the results of previous test runs and analyses
 Remove-Item -Path "$ScriptRoot/TestResults" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "$ScriptRoot/FileForge.Tests/TestResults" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "$ScriptRoot/.sonarqube" -Recurse -Force -ErrorAction SilentlyContinue
@@ -59,7 +59,7 @@ Remove-Item -Path "$ScriptRoot/.sonarqube" -Recurse -Force -ErrorAction Silently
 # 3. SonarScanner Begin
 $useSonar = (-not $SkipSonar) -and (-not [string]::IsNullOrWhiteSpace($SonarToken))
 if ($useSonar) {
-    Write-Host "`n[3/6] Initialisation SonarScanner sur $SonarHost..." -ForegroundColor Yellow
+    Write-Host "`n[3/6] Initializing SonarScanner on $SonarHost..." -ForegroundColor Yellow
     $sonarArgs = @(
         "begin",
         "/k:$ProjectKey",
@@ -76,44 +76,44 @@ if ($useSonar) {
     )
     dotnet sonarscanner @sonarArgs
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "Échec de l'initialisation SonarScanner."
+        Write-Error "SonarScanner initialization failed."
         exit $LASTEXITCODE
     }
 } else {
-    Write-Host "`n[3/6] SonarScanner ignoré (aucun token fourni ou -SkipSonar activé)." -ForegroundColor DarkGray
+    Write-Host "`n[3/6] SonarScanner skipped (no token found or -SkipSonar set)." -ForegroundColor DarkGray
 }
 
-# 4. Compilation Release avec zéro avertissement
-Write-Host "`n[4/6] Compilation Release sans incrémentation (-warnaserror)..." -ForegroundColor Yellow
+# 4. Release build with zero warnings
+Write-Host "`n[4/6] Non-incremental Release build (-warnaserror)..." -ForegroundColor Yellow
 dotnet build $SolutionPath -warnaserror --configuration Release --no-incremental
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "Échec de la compilation ou avertissements détectés."
+    Write-Error "Build failed or warnings were reported."
     exit $LASTEXITCODE
 }
-Write-Host "  Compilation réussie sans aucun avertissement." -ForegroundColor Green
+Write-Host "  Build succeeded with no warnings." -ForegroundColor Green
 
-# 5. Exécution des tests et collecte OpenCover
-Write-Host "`n[5/6] Exécution des tests unitaires et de couverture OpenCover..." -ForegroundColor Yellow
+# 5. Run the tests and collect OpenCover coverage
+Write-Host "`n[5/6] Running unit tests with OpenCover coverage..." -ForegroundColor Yellow
 dotnet test $SolutionPath --no-build --configuration Release --logger "trx" --collect:"XPlat Code Coverage;Format=opencover" --results-directory "$ScriptRoot/TestResults"
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "Des tests unitaires ou d'architecture ont échoué."
+    Write-Error "Unit or architecture tests failed."
     exit $LASTEXITCODE
 }
-Write-Host "  Tous les tests sont au vert." -ForegroundColor Green
+Write-Host "  All tests passed." -ForegroundColor Green
 
 # 6. SonarScanner End & Quality Gate
 if ($useSonar) {
-    Write-Host "`n[6/6] Finalisation SonarScanner et attente de la Quality Gate..." -ForegroundColor Yellow
+    Write-Host "`n[6/6] Finishing SonarScanner and waiting for the Quality Gate..." -ForegroundColor Yellow
     dotnet sonarscanner end /d:sonar.token=$SonarToken
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "Échec de la finalisation SonarScanner ou Quality Gate non passée."
+        Write-Error "SonarScanner end step failed or the Quality Gate did not pass."
         exit $LASTEXITCODE
     }
-    Write-Host "  Analyse SonarQube terminée avec succès." -ForegroundColor Green
+    Write-Host "  SonarQube analysis completed and the Quality Gate passed." -ForegroundColor Green
 } else {
-    Write-Host "`n[6/6] Analyse SonarQube non finalisée car ignorée." -ForegroundColor DarkGray
+    Write-Host "`n[6/6] SonarScanner end step skipped." -ForegroundColor DarkGray
 }
 
 Write-Host "`n==========================================" -ForegroundColor Green
-Write-Host "  Pipeline validé avec SUCCÈS !           " -ForegroundColor Green
+Write-Host "  Pipeline passed." -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Green

@@ -30,12 +30,12 @@ public class ConsoleDashboardTests
     }
 
     [Theory]
-    [InlineData(0, "0 o")]
-    [InlineData(512, "512 o")]
-    [InlineData(1024, "1 Ko")]
-    [InlineData(1536, "1.5 Ko")]
-    [InlineData(1048576, "1 Mo")]
-    [InlineData(1073741824, "1 Go")]
+    [InlineData(0, "0 B")]
+    [InlineData(512, "512 B")]
+    [InlineData(1024, "1 KB")]
+    [InlineData(1536, "1.5 KB")]
+    [InlineData(1048576, "1 MB")]
+    [InlineData(1073741824, "1 GB")]
     public void FormatBytes_WhenGivenByteCount_ReturnsHumanReadableSize(long bytes, string expected)
     {
         string result = ConsoleDashboard.FormatBytes(bytes);
@@ -166,7 +166,7 @@ public class ConsoleDashboardTests
 
         string box = dashboard.BuildDashboardString(80);
         Assert.Contains("[ 3 / 4 ]", box);
-        Assert.Contains("(2 restants, 1 en échec)", box);
+        Assert.Contains("(2 remaining, 1 failed)", box);
     }
 
     [Fact]
@@ -218,18 +218,18 @@ public class ConsoleDashboardTests
 
         dashboard.UpdateScanning(@"D:\Source\SubFolder", 125);
         string scanBox = dashboard.BuildDashboardString(80);
-        scanBox.Should().Contain("Inventaire / Analyse");
-        scanBox.Should().Contain("125 éléments");
+        scanBox.Should().Contain("Scanning the source");
+        scanBox.Should().Contain("125 items");
 
         var actScan = () => dashboard.DrawNortonBox(0, 80, 80);
         actScan.Should().NotThrow();
 
         // Transition UpToDate
-        dashboard.SetUpToDate("Disque déjà synchronisé");
+        dashboard.SetUpToDate("Disk already synchronized");
         dashboard.Phase.Should().Be(DashboardPhase.UpToDate);
         string upToDateBox = dashboard.BuildDashboardString(80);
-        upToDateBox.Should().Contain("Disque déjà synchronisé");
-        upToDateBox.Should().Contain("Aucun transfert nécessaire");
+        upToDateBox.Should().Contain("Disk already synchronized");
+        upToDateBox.Should().Contain("No transfer needed");
 
         var actUpToDate = () => dashboard.DrawNortonBox(0, 80, 80);
         actUpToDate.Should().NotThrow();
@@ -241,11 +241,11 @@ public class ConsoleDashboardTests
         dashboard.FailFile(1000);
 
         // Transition Completed
-        dashboard.Complete("Sauvegarde finalisée avec succès");
+        dashboard.Complete("Backup completed");
         dashboard.Phase.Should().Be(DashboardPhase.Completed);
         string completedBox = dashboard.BuildDashboardString(80);
-        completedBox.Should().Contain("Sauvegarde finalisée");
-        completedBox.Should().Contain("1 en échec");
+        completedBox.Should().Contain("Backup completed");
+        completedBox.Should().Contain("1 failed");
 
         var actComp = () => dashboard.DrawNortonBox(0, 80, 80);
         actComp.Should().NotThrow();

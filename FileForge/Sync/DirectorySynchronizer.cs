@@ -14,7 +14,7 @@ using FileForge.Terminal;
 namespace FileForge.Sync;
 
 /// <summary>
-/// Coordonne la synchronisation miroir (Clone) et incrémentale de répertoires.
+/// Runs mirror (clone) and incremental directory synchronization.
 /// </summary>
 public static class DirectorySynchronizer
 {
@@ -30,12 +30,12 @@ public static class DirectorySynchronizer
     }
 
     /// <summary>
-    /// Clone un répertoire source vers une destination en mode miroir selon les options fournies.
+    /// Mirrors a source directory to a destination, according to the given options.
     /// </summary>
-    /// <param name="sourceRoot">Répertoire racine source.</param>
-    /// <param name="destRoot">Répertoire racine de destination.</param>
-    /// <param name="options">Options de synchronisation et de filtrage.</param>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
+    /// <param name="sourceRoot">Source root directory.</param>
+    /// <param name="destRoot">Destination root directory.</param>
+    /// <param name="options">Synchronization and filtering options.</param>
+    /// <param name="cancellationToken">Cooperative cancellation token.</param>
     public static void CloneDirectory(
         string sourceRoot,
         string destRoot,
@@ -51,7 +51,7 @@ public static class DirectorySynchronizer
         Dashboard = dashboard;
         try
         {
-            RaiseLog("[DEBUG] Énumération des éléments sources...");
+            RaiseLog("[DEBUG] Listing the source items...");
             var srcItems = ParallelEnumerateFiles(
                 sourceRoot,
                 options.SourceListParallelism,
@@ -61,7 +61,7 @@ public static class DirectorySynchronizer
                 cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
-            RaiseLog("[DEBUG] Énumération des éléments cibles...");
+            RaiseLog("[DEBUG] Listing the target items...");
             var dstItems = ParallelEnumerateFiles(
                 destRoot,
                 options.DestinationListParallelism,
@@ -91,7 +91,7 @@ public static class DirectorySynchronizer
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             }
 
-            // Création des dossiers manquants
+            // Create the missing folders
             foreach (var dir in srcDirsMap.Keys.Except(dstDirsMap.Keys))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -99,7 +99,7 @@ public static class DirectorySynchronizer
                 Directory.CreateDirectory(fullDestDir);
             }
 
-            // Copie des fichiers nouveaux ou modifiés
+            // Copy the new or changed files
             var filesToCopy = srcFilesMap.Where(kvp =>
             {
                 var relPath = kvp.Key;
@@ -116,20 +116,20 @@ public static class DirectorySynchronizer
                 int failedCount = filesToCopy.Count - copiedFiles.Count;
                 if (failedCount > 0)
                 {
-                    RaiseLog($"[WARN] {failedCount} fichier(s) n'ont pas pu être copiés vers la destination.");
+                    RaiseLog($"[WARN] {failedCount} file(s) could not be copied to the destination.");
                 }
 
                 dashboard.Complete(failedCount > 0
-                    ? $"Clonage terminé avec {failedCount} fichier(s) en échec."
-                    : "Clonage (Miroir) terminé avec succès.");
+                    ? $"Clone completed with {failedCount} failed file(s)."
+                    : "Mirror clone completed.");
             }
             else
             {
-                dashboard.SetUpToDate("Dossier miroir déjà synchronisé.");
-                RaiseLog("[DEBUG] Aucun changement détecté. Aucun fichier écrit.");
+                dashboard.SetUpToDate("Mirror folder already synchronized.");
+                RaiseLog("[DEBUG] No change detected. No file written.");
             }
 
-            // Suppression des fichiers obsolètes
+            // Delete the obsolete files
             foreach (var path in dstFilesMap.Keys.Except(srcFilesMap.Keys))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -140,11 +140,11 @@ public static class DirectorySynchronizer
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    RaiseLog($"[WARN] Suppression du fichier impossible ({fullPath}) : {ex.Message}");
+                    RaiseLog($"[WARN] Cannot delete the file ({fullPath}): {ex.Message}");
                 }
             }
 
-            // Suppression des dossiers obsolètes
+            // Delete the obsolete folders
             foreach (var path in dstDirsMap.Keys.Except(srcDirsMap.Keys).OrderByDescending(p => p.Count(c => c == Path.DirectorySeparatorChar)))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -160,7 +160,7 @@ public static class DirectorySynchronizer
                         }
                         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                         {
-                            RaiseLog($"[WARN] Échec de la suppression du dossier exclu ({fullPath}) : {ex.Message}");
+                            RaiseLog($"[WARN] Cannot delete the excluded folder ({fullPath}): {ex.Message}");
                         }
                     }
                     continue;
@@ -174,7 +174,7 @@ public static class DirectorySynchronizer
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                     {
-                        RaiseLog($"[WARN] Échec de la suppression du dossier ({fullPath}) : {ex.Message}");
+                        RaiseLog($"[WARN] Cannot delete the folder ({fullPath}): {ex.Message}");
                     }
                 }
             }
@@ -186,12 +186,12 @@ public static class DirectorySynchronizer
     }
 
     /// <summary>
-    /// Effectue une sauvegarde incrémentale stricte dans un nouveau dossier daté selon les options fournies.
+    /// Runs a strict incremental backup into a new dated folder, according to the given options.
     /// </summary>
-    /// <param name="sourceRoot">Répertoire racine source.</param>
-    /// <param name="destBaseDir">Répertoire racine de base recevant les sauvegardes incrémentales.</param>
-    /// <param name="options">Options de synchronisation et de filtrage.</param>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
+    /// <param name="sourceRoot">Source root directory.</param>
+    /// <param name="destBaseDir">Base directory that receives the incremental backups.</param>
+    /// <param name="options">Synchronization and filtering options.</param>
+    /// <param name="cancellationToken">Cooperative cancellation token.</param>
     public static void IncrementalBackup(
         string sourceRoot,
         string destBaseDir,
@@ -208,15 +208,15 @@ public static class DirectorySynchronizer
         string tempBackupPath = Path.Combine(destBaseDir, "Backup_In_Progress");
         string indexFilePath = Path.Combine(destBaseDir, "backup_catalog.dat");
 
-        using var dashboard = new ConsoleDashboard(options.TaskTitle ?? "Incrémentale", sourceRoot, destBaseDir);
+        using var dashboard = new ConsoleDashboard(options.TaskTitle ?? "Incremental", sourceRoot, destBaseDir);
         Dashboard = dashboard;
         try
         {
-            RaiseLog("[DEBUG] Préparation de la sauvegarde incrémentale dans le dossier temporaire.");
+            RaiseLog("[DEBUG] Preparing the incremental backup in the temporary folder.");
 
             if (Directory.Exists(tempBackupPath))
             {
-                RaiseLog("[WARN] Un dossier temporaire existant a été détecté. Nettoyage en cours...");
+                RaiseLog("[WARN] An existing temporary folder was found. Cleaning it up...");
                 ForceDeleteDirectory(tempBackupPath);
             }
 
@@ -288,7 +288,7 @@ public static class DirectorySynchronizer
                     }
                 }
 
-                RaiseLog($"[DEBUG] Copie de {filesToCopy.Count} fichier(s) vers le stockage temporaire...");
+                RaiseLog($"[DEBUG] Copying {filesToCopy.Count} file(s) to the temporary storage...");
                 long totalBytes = filesToCopy.Sum(kvp => kvp.Value.Length);
                 dashboard.SetTransferPlan(filesToCopy.Count, totalBytes);
 
@@ -297,7 +297,7 @@ public static class DirectorySynchronizer
                 int failedCount = filesToCopy.Count - copiedFiles.Count;
                 if (failedCount > 0)
                 {
-                    RaiseLog($"[WARN] {failedCount} fichier(s) n'ont pas pu être copiés et seront retentés au prochain passage.");
+                    RaiseLog($"[WARN] {failedCount} file(s) could not be copied and will be retried on the next run.");
                 }
 
                 foreach (var relPath in copiedFiles)
@@ -305,7 +305,7 @@ public static class DirectorySynchronizer
                     currentCatalog[relPath] = pendingFingerprints[relPath];
                 }
 
-                RaiseLog($"[DEBUG] Validation de la sauvegarde. Renommage vers {finalBackupPath}...");
+                RaiseLog($"[DEBUG] Committing the backup. Renaming to {finalBackupPath}...");
                 if (Directory.Exists(finalBackupPath))
                 {
                     finalBackupPath += "_" + DateTime.Now.ToString("ss", System.Globalization.CultureInfo.InvariantCulture);
@@ -314,14 +314,14 @@ public static class DirectorySynchronizer
                 Directory.Move(tempBackupPath, finalBackupPath);
                 SyncCatalogRepository.SaveCatalog(currentCatalog, indexFilePath);
                 dashboard.Complete(failedCount > 0
-                    ? $"Sauvegarde validée avec {failedCount} fichier(s) en échec."
-                    : "Sauvegarde incrémentale validée et enregistrée avec succès.");
-                RaiseLog("[DEBUG] Sauvegarde incrémentale validée et enregistrée avec succès.");
+                    ? $"Backup committed with {failedCount} failed file(s)."
+                    : "Incremental backup committed and saved.");
+                RaiseLog("[DEBUG] Incremental backup committed and saved.");
             }
             else
             {
-                dashboard.SetUpToDate("Disque déjà à jour, aucun changement détecté.");
-                RaiseLog("[DEBUG] Aucun changement détecté. Aucun fichier écrit.");
+                dashboard.SetUpToDate("Disk already up to date, no change detected.");
+                RaiseLog("[DEBUG] No change detected. No file written.");
             }
         }
         finally
@@ -331,15 +331,15 @@ public static class DirectorySynchronizer
     }
 
     /// <summary>
-    /// Parcourt récursivement et en parallèle un répertoire pour répertorier les fichiers et sous-dossiers correspondants aux filtres.
+    /// Walks a directory recursively and in parallel to list the files and subfolders that match the filters.
     /// </summary>
-    /// <param name="rootPath">Chemin racine à explorer.</param>
-    /// <param name="maxParallelism">Degré de parallélisme maximal.</param>
-    /// <param name="includeFilters">Filtres d'inclusion séparés par point-virgule.</param>
-    /// <param name="excludeFilters">Filtres d'exclusion séparés par point-virgule.</param>
-    /// <param name="options">Options de filtrage d'exclusion globales.</param>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
-    /// <returns>Liste des éléments du système de fichiers découverts.</returns>
+    /// <param name="rootPath">Root path to walk.</param>
+    /// <param name="maxParallelism">Maximum degree of parallelism.</param>
+    /// <param name="includeFilters">Semicolon-separated inclusion filters.</param>
+    /// <param name="excludeFilters">Semicolon-separated exclusion filters.</param>
+    /// <param name="options">Global exclusion options.</param>
+    /// <param name="cancellationToken">Cooperative cancellation token.</param>
+    /// <returns>The file system items found.</returns>
     public static List<FileSystemInfo> ParallelEnumerateFiles(
         string rootPath,
         int maxParallelism,
@@ -435,7 +435,7 @@ public static class DirectorySynchronizer
                         }
                         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                         {
-                            RaiseLog($"[WARN] Analyse impossible pour {currentDir} : {ex.Message}");
+                            RaiseLog($"[WARN] Cannot scan {currentDir}: {ex.Message}");
                         }
                         finally
                         {
@@ -527,7 +527,7 @@ public static class DirectorySynchronizer
                         }
                         else
                         {
-                            RaiseLog($"[WARN] Fichier source introuvable : {srcFile.FullName}");
+                            RaiseLog($"[WARN] Source file not found: {srcFile.FullName}");
                             Dashboard?.FailFile(srcFile.Length);
                         }
                     }
@@ -557,9 +557,9 @@ public static class DirectorySynchronizer
     }
 
     /// <summary>
-    /// Supprime un répertoire de manière récursive en forçant le retrait des attributs ReadOnly/System.
+    /// Deletes a directory recursively, clearing the ReadOnly and System attributes first.
     /// </summary>
-    /// <param name="directoryPath">Chemin du répertoire à supprimer.</param>
+    /// <param name="directoryPath">Path of the directory to delete.</param>
     public static void ForceDeleteDirectory(string directoryPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);

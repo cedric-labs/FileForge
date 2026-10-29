@@ -65,6 +65,6 @@ public class HardwarePerformanceAdvisorTests
             HardwarePerformanceAdvisor.AdvisorLog -= handler;
         }
 
-        logged.Should().BeFalse(); // pas d'erreur sur chemin valide
+        logged.Should().BeFalse(); // a valid path logs no error
     }
 }

@@ -3,8 +3,8 @@ using System.Text;
 namespace FileForge.IO;
 
 /// <summary>
-/// Écrivain persistant de fichiers délimités (CSV, TSV) thread-safe avec ouverture partagée non bloquante (FileShare.ReadWrite).
-/// Permet l'ajout continu de lignes au fil de l'eau et le rechargement asynchrone des lignes préexistantes au démarrage.
+/// Thread-safe persistent writer for delimited files (CSV, TSV), opened with non-blocking shared access (FileShare.ReadWrite).
+/// Appends lines as they arrive and reloads the existing lines asynchronously at startup.
 /// </summary>
 public sealed class PersistentDelimitedFileWriter : IAsyncDisposable
 {
@@ -15,10 +15,10 @@ public sealed class PersistentDelimitedFileWriter : IAsyncDisposable
     private StreamWriter? _streamWriter;
 
     /// <summary>
-    /// Initialise une nouvelle instance de l'écrivain délimité.
+    /// Initializes a new delimited file writer.
     /// </summary>
-    /// <param name="filePath">Chemin d'accès au fichier de destination.</param>
-    /// <param name="headerLine">Ligne d'en-tête à écrire si le fichier est nouvellement créé.</param>
+    /// <param name="filePath">Path of the target file.</param>
+    /// <param name="headerLine">Header line written when the file is created.</param>
     public PersistentDelimitedFileWriter(string filePath, string headerLine)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -29,9 +29,9 @@ public sealed class PersistentDelimitedFileWriter : IAsyncDisposable
     }
 
     /// <summary>
-    /// Initialise le flux sous-jacent avec partage en lecture/écriture, écrit l'en-tête si nécessaire ou se place en fin de fichier.
+    /// Opens the underlying stream with read/write sharing, then writes the header for a new file or seeks to the end of an existing one.
     /// </summary>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -74,10 +74,10 @@ public sealed class PersistentDelimitedFileWriter : IAsyncDisposable
     }
 
     /// <summary>
-    /// Lit de manière asynchrone l'ensemble des lignes existantes du fichier (hors en-tête) pour hydrater les caches de dédoublonnage.
+    /// Asynchronously reads every existing line of the file (header excluded), so that callers can rebuild their deduplication caches.
     /// </summary>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
-    /// <returns>Collection des lignes existantes trouvées.</returns>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The existing lines.</returns>
     public async Task<IReadOnlyList<string>> ReadExistingLinesAsync(CancellationToken cancellationToken = default)
     {
         var lines = new List<string>();
@@ -120,17 +120,17 @@ public sealed class PersistentDelimitedFileWriter : IAsyncDisposable
     }
 
     /// <summary>
-    /// Ajoute une ligne de manière thread-safe et asynchrone au fichier.
+    /// Appends a line to the file asynchronously; concurrent calls are serialized.
     /// </summary>
-    /// <param name="line">Ligne à ajouter.</param>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
+    /// <param name="line">Line to append.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     public async Task AppendLineAsync(string line, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(line);
 
         if (_streamWriter is null)
         {
-            throw new InvalidOperationException("L'écrivain de fichier délimité doit être initialisé avant d'écrire.");
+            throw new InvalidOperationException("The delimited file writer must be initialized before writing.");
         }
 
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -145,11 +145,11 @@ public sealed class PersistentDelimitedFileWriter : IAsyncDisposable
     }
 
     /// <summary>
-    /// Échappe une valeur textuelle selon les règles standards RFC 4180 pour inclusion dans un champ délimité.
+    /// Escapes a text value according to RFC 4180 so that it can be stored in a delimited field.
     /// </summary>
-    /// <param name="value">Valeur textuelle brute.</param>
-    /// <param name="delimiter">Caractère séparateur utilisé.</param>
-    /// <returns>Valeur échappée prête pour l'export.</returns>
+    /// <param name="value">Raw text value.</param>
+    /// <param name="delimiter">Field separator.</param>
+    /// <returns>The escaped value.</returns>
     public static string EscapeField(string value, char delimiter = ',')
     {
         if (string.IsNullOrEmpty(value))

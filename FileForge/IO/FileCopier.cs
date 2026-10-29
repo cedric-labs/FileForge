@@ -10,7 +10,7 @@ using FileForge.Diagnostics;
 namespace FileForge.IO;
 
 /// <summary>
-/// Gère la copie sécurisée de fichiers individuels, de leurs métadonnées, ACL et vérification d'intégrité par hachage.
+/// Copies single files with their metadata and ACLs, and checks their integrity by hashing.
 /// </summary>
 public static class FileCopier
 {
@@ -24,16 +24,16 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Copie un fichier vers sa destination via un fichier temporaire (.fileforge_tmp) pour assurer la cohérence transactionnelle.
+    /// Copies a file through a temporary file (.fileforge_tmp), so that the destination is never left half-written.
     /// </summary>
-    /// <param name="sourcePath">Chemin du fichier source.</param>
-    /// <param name="destPath">Chemin du fichier de destination.</param>
-    /// <param name="bufferSize">Taille du tampon de copie en octets.</param>
-    /// <param name="displayProgress">Indique s'il faut afficher la progression sur la console en direct.</param>
-    /// <param name="verifyHash">Indique si l'intégrité du fichier doit être vérifiée par empreinte SHA256 après copie.</param>
-    /// <param name="progressCallback">Délégation optionnelle notifiée du nombre d'octets transférés et de la taille totale.</param>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
-    /// <returns>True si la copie et la vérification ont réussi, sinon false.</returns>
+    /// <param name="sourcePath">Source file path.</param>
+    /// <param name="destPath">Destination file path.</param>
+    /// <param name="bufferSize">Copy buffer size in bytes.</param>
+    /// <param name="displayProgress">Whether to show live progress on the console.</param>
+    /// <param name="verifyHash">Whether to compare the SHA-256 hashes of both files after the copy.</param>
+    /// <param name="progressCallback">Optional callback receiving the bytes copied so far and the total size.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True when the copy and the optional check succeeded; otherwise false.</returns>
     public static bool CopyFile(
         string sourcePath,
         string destPath,
@@ -111,7 +111,7 @@ public static class FileCopier
 
             if (verifyHash && !CompareFileHashes(sourcePath, destPath))
             {
-                RaiseLog($"[WARN] Incohérence de hachage SHA256 après copie : {sourcePath}");
+                RaiseLog($"[WARN] SHA-256 mismatch after copy: {sourcePath}");
                 File.Delete(destPath);
                 return false;
             }
@@ -125,7 +125,7 @@ public static class FileCopier
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            RaiseLog($"[ERROR] Erreur lors de la copie du fichier ({sourcePath} -> {destPath}) : {ex.Message}");
+            RaiseLog($"[ERROR] File copy failed ({sourcePath} -> {destPath}): {ex.Message}");
             CleanupTempFile(tempPath);
             return false;
         }
@@ -142,12 +142,12 @@ public static class FileCopier
         }
         catch (Exception cleanupEx) when (cleanupEx is IOException or UnauthorizedAccessException)
         {
-            RaiseLog($"[WARN] Échec du nettoyage du fichier temporaire ({tempPath}) : {cleanupEx.Message}");
+            RaiseLog($"[WARN] Could not delete the temporary file ({tempPath}): {cleanupEx.Message}");
         }
     }
 
     /// <summary>
-    /// Copie les métadonnées (dates, attributs et optionnellement les ACL) d'un élément vers un autre.
+    /// Copies the metadata (timestamps, attributes and optionally ACLs) of one item to another.
     /// </summary>
     public static void CopyMetadata(string sourcePath, string destPath, bool includeAcl = false)
     {
@@ -185,7 +185,7 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Copie les listes de contrôle d'accès (ACL).
+    /// Copies the access control lists (ACLs).
     /// </summary>
     public static void CopyAcl(string sourcePath, string destPath)
     {
@@ -206,16 +206,16 @@ public static class FileCopier
         }
         else
         {
-            throw new FileNotFoundException($"Le chemin source n'existe pas : {sourcePath}");
+            throw new FileNotFoundException($"The source path does not exist: {sourcePath}");
         }
     }
 
     /// <summary>
-    /// Compare les empreintes de hachage SHA256 de deux fichiers pour s'assurer de leur stricte identité binaire.
+    /// Compares the SHA-256 hashes of two files to check that they are byte-for-byte identical.
     /// </summary>
-    /// <param name="path1">Chemin du premier fichier.</param>
-    /// <param name="path2">Chemin du second fichier.</param>
-    /// <returns>True si les deux empreintes sont rigoureusement identiques, sinon false.</returns>
+    /// <param name="path1">First file path.</param>
+    /// <param name="path2">Second file path.</param>
+    /// <returns>True when both hashes are identical; otherwise false.</returns>
     public static bool CompareFileHashes(string path1, string path2)
     {
         using var sha = SHA256.Create();
@@ -227,11 +227,11 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Calcule l'empreinte de hachage hexadécimale d'un fichier physique.
+    /// Computes the hexadecimal hash of a file.
     /// </summary>
-    /// <param name="filePath">Chemin d'accès au fichier.</param>
-    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
-    /// <returns>Empreinte hexadécimale en minuscules.</returns>
+    /// <param name="filePath">File path.</param>
+    /// <param name="algorithm">Hash algorithm (SHA-256 by default).</param>
+    /// <returns>The lowercase hexadecimal hash.</returns>
     public static string ComputeFileHash(string filePath, HashAlgorithmName? algorithm = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -241,12 +241,12 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Calcule de manière asynchrone l'empreinte de hachage hexadécimale d'un fichier physique.
+    /// Asynchronously computes the hexadecimal hash of a file.
     /// </summary>
-    /// <param name="filePath">Chemin d'accès au fichier.</param>
-    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
-    /// <returns>Empreinte hexadécimale en minuscules.</returns>
+    /// <param name="filePath">File path.</param>
+    /// <param name="algorithm">Hash algorithm (SHA-256 by default).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The lowercase hexadecimal hash.</returns>
     public static async Task<string> ComputeFileHashAsync(
         string filePath,
         HashAlgorithmName? algorithm = null,
@@ -259,11 +259,11 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Calcule l'empreinte de hachage hexadécimale à partir d'un flux de données.
+    /// Computes the hexadecimal hash of a stream.
     /// </summary>
-    /// <param name="stream">Flux source à hacher.</param>
-    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
-    /// <returns>Empreinte hexadécimale en minuscules.</returns>
+    /// <param name="stream">Stream to hash.</param>
+    /// <param name="algorithm">Hash algorithm (SHA-256 by default).</param>
+    /// <returns>The lowercase hexadecimal hash.</returns>
     public static string ComputeHash(Stream stream, HashAlgorithmName? algorithm = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -274,12 +274,12 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Calcule de manière asynchrone l'empreinte de hachage hexadécimale à partir d'un flux de données.
+    /// Asynchronously computes the hexadecimal hash of a stream.
     /// </summary>
-    /// <param name="stream">Flux source à hacher.</param>
-    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
-    /// <returns>Empreinte hexadécimale en minuscules.</returns>
+    /// <param name="stream">Stream to hash.</param>
+    /// <param name="algorithm">Hash algorithm (SHA-256 by default).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The lowercase hexadecimal hash.</returns>
     public static async Task<string> ComputeHashAsync(
         Stream stream,
         HashAlgorithmName? algorithm = null,
@@ -293,12 +293,12 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Vérifie si l'empreinte de hachage d'un fichier correspond à la valeur hexadécimale attendue.
+    /// Checks whether the hash of a file matches the expected hexadecimal value.
     /// </summary>
-    /// <param name="filePath">Chemin du fichier à vérifier.</param>
-    /// <param name="expectedHashHex">Empreinte hexadécimale attendue (insensible à la casse).</param>
-    /// <param name="algorithm">Algorithme de hachage cryptographique souhaité (SHA256 par défaut).</param>
-    /// <returns>True si les empreintes correspondent rigoureusement, sinon false.</returns>
+    /// <param name="filePath">Path of the file to check.</param>
+    /// <param name="expectedHashHex">Expected hexadecimal hash (case-insensitive).</param>
+    /// <param name="algorithm">Hash algorithm (SHA-256 by default).</param>
+    /// <returns>True when the hashes match; otherwise false.</returns>
     public static bool VerifyFileHash(string filePath, string expectedHashHex, HashAlgorithmName? algorithm = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -309,11 +309,11 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Lit de manière non bloquante jusqu'à un nombre donné d'octets au tout début d'un fichier physique.
+    /// Reads up to the given number of bytes from the start of a file, with shared read/write access.
     /// </summary>
-    /// <param name="filePath">Chemin d'accès au fichier.</param>
-    /// <param name="byteCount">Nombre d'octets à lire.</param>
-    /// <returns>Tableau d'octets lus (de longueur inférieure ou égale à byteCount).</returns>
+    /// <param name="filePath">File path.</param>
+    /// <param name="byteCount">Number of bytes to read.</param>
+    /// <returns>The bytes read (at most byteCount).</returns>
     public static byte[] ReadFileHeader(string filePath, int byteCount)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -321,7 +321,7 @@ public static class FileCopier
 
         if (!File.Exists(filePath))
         {
-            throw new FileNotFoundException($"Le fichier spécifié est introuvable : {filePath}", filePath);
+            throw new FileNotFoundException($"File not found: {filePath}", filePath);
         }
 
         using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -335,12 +335,12 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Lit de manière asynchrone et non bloquante jusqu'à un nombre donné d'octets au tout début d'un fichier physique.
+    /// Asynchronously reads up to the given number of bytes from the start of a file, with shared read/write access.
     /// </summary>
-    /// <param name="filePath">Chemin d'accès au fichier.</param>
-    /// <param name="byteCount">Nombre d'octets à lire.</param>
-    /// <param name="cancellationToken">Jeton d'annulation coopérative.</param>
-    /// <returns>Tableau d'octets lus (de longueur inférieure ou égale à byteCount).</returns>
+    /// <param name="filePath">File path.</param>
+    /// <param name="byteCount">Number of bytes to read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The bytes read (at most byteCount).</returns>
     public static async Task<byte[]> ReadFileHeaderAsync(string filePath, int byteCount, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -348,7 +348,7 @@ public static class FileCopier
 
         if (!File.Exists(filePath))
         {
-            throw new FileNotFoundException($"Le fichier spécifié est introuvable : {filePath}", filePath);
+            throw new FileNotFoundException($"File not found: {filePath}", filePath);
         }
 
         await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -362,11 +362,11 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Vérifie si un fichier physique débute par la séquence d'octets spécifiée.
+    /// Checks whether a file starts with the given byte sequence.
     /// </summary>
-    /// <param name="filePath">Chemin d'accès au fichier.</param>
-    /// <param name="expectedHeader">En-tête attendu sous forme d'octets.</param>
-    /// <returns>True si le fichier existe et commence par les octets attendus, sinon false.</returns>
+    /// <param name="filePath">File path.</param>
+    /// <param name="expectedHeader">Expected leading bytes.</param>
+    /// <returns>True when the file exists and starts with the expected bytes; otherwise false.</returns>
     public static bool MatchesFileHeader(string filePath, byte[] expectedHeader)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -398,14 +398,14 @@ public static class FileCopier
         if (algorithm == HashAlgorithmName.SHA256) return SHA256.Create();
         if (algorithm == HashAlgorithmName.SHA512) return SHA512.Create();
         if (algorithm == HashAlgorithmName.SHA384) return SHA384.Create();
-        throw new NotSupportedException($"L'algorithme de hachage '{algorithm.Name}' n'est pas pris en charge.");
+        throw new NotSupportedException($"Hash algorithm '{algorithm.Name}' is not supported.");
     }
 
     /// <summary>
-    /// Calcule la taille optimale de tampon de copie en fonction de la taille globale du fichier source.
+    /// Picks the copy buffer size from the size of the source file.
     /// </summary>
-    /// <param name="fileSize">Taille du fichier en octets.</param>
-    /// <returns>Taille de tampon recommandée (entre 64 Ko et 16 Mo).</returns>
+    /// <param name="fileSize">File size in bytes.</param>
+    /// <returns>The buffer size, between 64 KB and 16 MB.</returns>
     public static int CalculateOptimalBufferSize(long fileSize)
     {
         const int smallFileThreshold = 1 * 1024 * 1024;
@@ -438,13 +438,13 @@ public static class FileCopier
     }
 
     /// <summary>
-    /// Formate un nombre d'octets en chaîne lisible avec unité adéquate (o, Ko, Mo, Go, To, Po).
+    /// Formats a byte count with its unit (B, KB, MB, GB, TB, PB).
     /// </summary>
-    /// <param name="bytes">Nombre d'octets.</param>
-    /// <returns>Chaîne formatée avec unité.</returns>
+    /// <param name="bytes">Byte count.</param>
+    /// <returns>The formatted value with its unit.</returns>
     public static string FormatFileSize(long bytes)
     {
-        string[] suffixes = ["o", "Ko", "Mo", "Go", "To", "Po"];
+        string[] suffixes = ["B", "KB", "MB", "GB", "TB", "PB"];
         int i;
         double dblBytes = bytes;
         for (i = 0; i < suffixes.Length && bytes >= 1024; i++, bytes /= 1024)
