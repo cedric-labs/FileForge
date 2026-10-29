@@ -114,7 +114,7 @@ This document sets the software quality standards, the mandatory tooling protoco
 - **Automated run**: Playwright tests must run on their own in headless mode (no visible UI) during the `./verify.ps1` pipeline.
 
 ### Rule 14: Systematic reuse & capitalization in the shared frameworks
-- **Inspect first**: Before implementing a technical component, a utility, an I/O operation, hashing, an algorithm or terminal rendering that is not business-specific, check the central catalog of shared frameworks (`D:\Dev\Framework\FRAMEWORKS_INDEX.md`).
+- **Inspect first**: Before implementing a technical component, a utility, an I/O operation, hashing, an algorithm or terminal rendering that is not business-specific, check the central catalog of shared frameworks (`FRAMEWORKS_INDEX.md` at the root of the shared frameworks folder).
 - **No duplication**: Never rewrite locally a building block that already exists in a shared framework. Reference the relevant project (`<ProjectReference>`).
 - **Backward-compatible evolution & overloads**: When a framework feature must be extended or adapted:
   1. Change the component directly in the host framework through method overloads or optional parameters.
